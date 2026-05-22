@@ -245,8 +245,6 @@ h1 em{font-style:italic;color:var(--teal);}
 .tag-coords{color:var(--muted);background:var(--bg3);border:1px solid var(--border);}
 .tag-update{color:var(--teal);background:rgba(82,201,160,.1);border:1px solid var(--teal-d);}
 .tag-moon{color:var(--amber);background:rgba(232,184,75,.1);border:1px solid var(--amber-d);}
-.lang-btn{font-family:var(--mono);font-size:11px;font-weight:600;padding:4px 14px;border-radius:6px;border:1px solid var(--teal-d);background:transparent;color:var(--teal);cursor:pointer;letter-spacing:.5px;}
-.lang-btn:hover{background:var(--teal-d);}
 .tabs{display:flex;border-bottom:1px solid var(--border);padding:0 32px;gap:2px;overflow-x:auto;}
 .tab{padding:10px 18px;font-size:12px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);white-space:nowrap;background:none;border-top:none;border-left:none;border-right:none;font-family:var(--mono);}
 .tab.active{color:var(--teal);border-bottom-color:var(--teal);}
@@ -322,7 +320,6 @@ footer{padding:24px 32px 0;font-size:11px;color:var(--muted);border-top:1px soli
 """)
     parts.append('    <div class="tag tag-moon">%s %s &middot; %s%% &middot; %sd to syzygy</div>\n' % (memoji, mname, mill, md2s))
     parts.append('    <div class="tag tag-update">&#8635; %s</div>\n' % gt)
-    parts.append('    <button class="lang-btn" id="lang-btn" onclick="toggleLang()">ES</button>\n')
     parts.append("""  </div>
 </header>
 """)
@@ -491,7 +488,7 @@ function initTides(){
     {label:'Critical',data:Array(TH.length).fill(W3),borderColor:'rgba(232,80,80,.6)',borderDash:[4,4],backgroundColor:'transparent',fill:false,pointRadius:0,borderWidth:1.5},
     {label:'Warning', data:Array(TH.length).fill(W1),borderColor:'rgba(232,184,75,.4)',borderDash:[4,4],backgroundColor:'transparent',fill:false,pointRadius:0,borderWidth:1}
   ]},options:{...bO,plugins:{...bO.plugins,legend:{display:true,labels:{color:'#6b7d62',boxWidth:24,font:{size:11}}}},
-    scales:{...bO.scales,y:{...bO.scales.y,min:-0.5,max:Math.ceil((Math.max.apply(null,TV.concat([W3]))+0.4)*2)/2,title:{display:true,text:'meters (MSL)',color:'#6b7d62',font:{size:10}}}}}});
+    scales:{...bO.scales,y:{...bO.scales.y,min:Math.floor((Math.min.apply(null,TV)-0.3)*2)/2,max:Math.ceil((Math.max.apply(null,TV.concat([W3]))+0.3)*2)/2,title:{display:true,text:'meters (MSL)',color:'#6b7d62',font:{size:10}}}}}});
 }
 
 function initRisk(){
@@ -538,76 +535,6 @@ function switchTab(id,el){
 }
 
 initTides();
-
-// ── LANGUAGE SWITCH ──────────────────────────────────────────
-var LANG='en';
-var TX={
-  en:{
-    subtitle:'Historical record · 10-day tide forecast · Flood risk index · Auto-updated daily',
-    floodRisk:"Today's Flood Risk",
-    tab1:'🌊 Tide Forecast',   tab2:'⚠ Risk Index',
-    tab3:'📊 Climate Record',  tab4:'📅 Seasonal Pattern',
-    kpi1:"Today's max tide",  kpi2:'Moon phase',
-    kpi3:'Days to syzygy',    kpi4:'Critical threshold',
-    kpi5:'Avg max temp',      kpi6:'Avg min temp',
-    kpi7:'Avg humidity',      kpi8:'Est. annual rainfall',
-    kpi9:'Avg wind',          kpi10:'Avg evap. index',
-    sec1:'Hourly tide heights — next 10 days (WorldTides · MSL datum)',
-    sec2:'10-day risk calendar',
-    sec4:'10-day risk score & tide height',
-    sec5:'Monthly temperature record',
-    sec6:'Relative humidity (%)',
-    sec7:'Monthly precipitation (mm)',
-    sec8:'Evaporation index — salt production potential',
-    rft:'Risk factors scored daily:',
-    rlt:'Risk levels:',
-    snote:'⚠ = historically elevated tide flood risk',
-    sdry1:'Dry (Jan–Apr)',swet:'Rainy (May–Oct)',sdry2:'Dry (Nov–Dec)'
-  },
-  es:{
-    subtitle:'Registro histórico · Mareas 10 días · Índice de riesgo · Actualización diaria automática',
-    floodRisk:'Riesgo de inundación hoy',
-    tab1:'🌊 Pronóstico Mareas',  tab2:'⚠ Índice de Riesgo',
-    tab3:'📊 Registro Climático', tab4:'📅 Patrón Estacional',
-    kpi1:'Marea máxima hoy',     kpi2:'Fase lunar',
-    kpi3:'Días a sicigia',       kpi4:'Umbral crítico',
-    kpi5:'Temp. máx. prom.',     kpi6:'Temp. mín. prom.',
-    kpi7:'Humedad promedio',     kpi8:'Lluvia anual est.',
-    kpi9:'Viento promedio',      kpi10:'Índice evap. prom.',
-    sec1:'Mareas hora a hora — próximos 10 días (WorldTides · MSL)',
-    sec2:'Calendario de riesgo 10 días',
-    sec4:'Puntuación de riesgo 10 días y altura de marea',
-    sec5:'Registro de temperatura mensual',
-    sec6:'Humedad relativa (%)',
-    sec7:'Precipitación mensual total (mm)',
-    sec8:'Índice de evaporación — potencial producción de sal',
-    rft:'Factores de riesgo diarios:',
-    rlt:'Niveles de riesgo:',
-    snote:'⚠ = meses con alto riesgo histórico de inundación por mareas',
-    sdry1:'Seca (Ene–Abr)',swet:'Lluviosa (May–Oct)',sdry2:'Seca (Nov–Dic)'
-  }
-};
-
-var TMAP={
-  'subtitle':'subtitle','flood-risk':'floodRisk',
-  'tab1':'tab1','tab2':'tab2','tab3':'tab3','tab4':'tab4',
-  'kpi1':'kpi1','kpi2':'kpi2','kpi3':'kpi3','kpi4':'kpi4',
-  'kpi5':'kpi5','kpi6':'kpi6','kpi7':'kpi7','kpi8':'kpi8',
-  'kpi9':'kpi9','kpi10':'kpi10',
-  'sec1':'sec1','sec2':'sec2','sec4':'sec4',
-  'sec5':'sec5','sec6':'sec6','sec7':'sec7','sec8':'sec8',
-  'risk-factors-title':'rft','risk-levels-title':'rlt',
-  'seasonal-note':'snote','seg-dry1':'sdry1','seg-wet':'swet','seg-dry2':'sdry2'
-};
-
-function toggleLang(){
-  LANG = LANG==='en' ? 'es' : 'en';
-  document.getElementById('lang-btn').textContent = LANG==='en' ? 'ES' : 'EN';
-  Object.keys(TMAP).forEach(function(id){
-    var el=document.getElementById('t-'+id);
-    if(el) el.textContent=TX[LANG][TMAP[id]];
-  });
-}
 """)
     parts.append('</script>\n</body>\n</html>\n')
 
