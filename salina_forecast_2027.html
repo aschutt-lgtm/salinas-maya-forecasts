@@ -6,429 +6,439 @@
 <title>Salinas Maya — 2027 Annual Forecast</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Fraunces:ital,wght@0,300;0,500;0,700;1,300;1,500&display=swap');
-:root{--bg:#0c0f0a;--bg2:#13170f;--bg3:#1c2117;--border:#2a3025;--text:#dde8d4;--muted:#6b7d62;--teal:#52c9a0;--teal-d:#1a5c43;--amber:#e8b84b;--amber-d:#6b4f10;--coral:#e87070;--coral-d:#6b1f1f;--blue:#70b8e8;--blue-d:#1a3d5c;--green:#7ed45e;--green-d:#2a5c1a;--red:#e85050;--red-d:#5c1010;--purple:#c07ee8;--mono:'DM Mono',monospace;--serif:'Fraunces',serif;}
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,wght@0,500;1,500&display=swap');
+:root{--bg:#0c0f0a;--bg2:#13170f;--bg3:#1c2117;--border:#2a3025;--text:#dde8d4;--muted:#6b7d62;--teal:#52c9a0;--teal-d:#1a5c43;--amber:#e8b84b;--amber-d:#6b4f10;--coral:#e87070;--blue:#70b8e8;--green:#7ed45e;--red:#e85050;--purple:#c07ee8;--mono:'DM Mono',monospace;--serif:'Fraunces',serif;}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:var(--mono);background:var(--bg);color:var(--text);min-height:100vh;}
-header{padding:28px 36px 22px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;}
-.h-left h1{font-family:var(--serif);font-size:22px;font-weight:500;color:var(--text);}
-.h-left h1 em{font-style:italic;color:var(--amber);}
-.h-sub{font-size:11px;color:var(--muted);margin-top:4px;}
-.h-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;}
-.enso-badge{display:flex;align-items:center;gap:8px;background:rgba(232,184,75,.12);border:1px solid var(--amber-d);border-radius:6px;padding:6px 14px;font-size:12px;font-weight:500;color:var(--amber);}
+header{border-bottom:1px solid var(--border);padding:20px 32px 16px;display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;}
+.h-title{display:flex;align-items:center;gap:14px;}
+.h-badge{width:36px;height:36px;background:linear-gradient(135deg,var(--teal-d),var(--teal));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+h1{font-family:var(--serif);font-size:18px;font-weight:500;}
+h1 em{font-style:italic;color:var(--amber);}
+.h-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.h-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.tag{font-size:11px;padding:4px 10px;border-radius:6px;}
+.tag-coords{color:var(--muted);background:var(--bg3);border:1px solid var(--border);}
+.tag-enso{color:var(--amber);background:rgba(232,184,75,.1);border:1px solid var(--amber-d);display:flex;align-items:center;gap:6px;}
 .enso-dot{width:8px;height:8px;border-radius:50%;background:var(--amber);animation:blink 1.4s ease-in-out infinite;}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
 .source-tag{font-size:10px;color:var(--muted);}
-.tabs{display:flex;border-bottom:1px solid var(--border);padding:0 36px;gap:2px;overflow-x:auto;}
-.tab{padding:10px 18px;font-size:12px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);white-space:nowrap;background:none;border-top:none;border-left:none;border-right:none;font-family:var(--mono);transition:color .15s;}
-.tab:hover{color:var(--text);}
+.tabs{display:flex;border-bottom:1px solid var(--border);padding:0 32px;gap:2px;overflow-x:auto;}
+.tab{padding:10px 18px;font-size:12px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);white-space:nowrap;background:none;border-top:none;border-left:none;border-right:none;font-family:var(--mono);}
 .tab.active{color:var(--teal);border-bottom-color:var(--teal);}
-.panel{display:none;padding:28px 36px 60px;}
+.panel{display:none;padding:24px 32px 40px;}
 .panel.active{display:block;}
-.sec-hd{display:flex;align-items:baseline;gap:12px;margin-bottom:16px;}
-.sec-title{font-family:var(--serif);font-size:16px;font-weight:500;color:var(--text);}
-.sec-note{font-size:11px;color:var(--muted);}
+.sec-title{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:14px;}
+.chart-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:20px;}
+.chart-title{font-size:11px;color:var(--muted);margin-bottom:12px;}
+.chart-wrap{position:relative;height:220px;}
+.chart-wrap-lg{position:relative;height:260px;}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
-@media(max-width:700px){.g2,.g4{grid-template-columns:1fr;}.panel,.tabs,header{padding-left:16px;padding-right:16px;}}
-.card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px 20px;}
-.card.accent-teal{border-top:2px solid var(--teal);}
-.card.accent-amber{border-top:2px solid var(--amber);}
-.card.accent-coral{border-top:2px solid var(--coral);}
-.card.accent-blue{border-top:2px solid var(--blue);}
-.card.accent-green{border-top:2px solid var(--green);}
-.card.accent-red{border-top:2px solid var(--red);}
-.kpi-label{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:8px;}
-.kpi-row{display:flex;align-items:baseline;gap:6px;}
-.kpi-val{font-size:28px;font-weight:500;line-height:1;font-family:var(--serif);}
-.kpi-unit{font-size:13px;color:var(--muted);}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px 18px;}
+.card.teal{border-top:2px solid var(--teal);}
+.card.amber{border-top:2px solid var(--amber);}
+.card.coral{border-top:2px solid var(--coral);}
+.card.blue{border-top:2px solid var(--blue);}
+.card.green{border-top:2px solid var(--green);}
+.kpi-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:8px;}
+.kpi-val{font-family:var(--serif);font-size:26px;font-weight:500;line-height:1;}
+.kpi-unit{font-size:13px;color:var(--muted);margin-left:2px;}
 .kpi-delta{font-size:11px;padding:2px 7px;border-radius:4px;margin-left:4px;}
 .delta-pos{background:rgba(82,201,160,.15);color:var(--teal);}
 .delta-neg{background:rgba(232,112,112,.15);color:var(--coral);}
 .kpi-sub{font-size:11px;color:var(--muted);margin-top:6px;}
-.chart-box{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px 20px 16px;}
-.chart-title{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:14px;}
-.chart-wrap{position:relative;height:200px;}
-.chart-wrap-lg{position:relative;height:260px;}
-.cal-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;}
-@media(max-width:700px){.cal-grid{grid-template-columns:repeat(6,1fr);}}
-.cal-month{border-radius:6px;padding:10px 6px 8px;text-align:center;cursor:pointer;transition:opacity .15s;}
-.cal-month:hover{opacity:.85;}
-.cal-m-name{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.4px;}
-.cal-m-icon{font-size:16px;margin:5px 0 4px;}
-.cal-m-score{font-size:13px;font-weight:500;font-family:var(--serif);}
-.m-optimal{background:rgba(82,201,160,.15);} .m-optimal .cal-m-name{color:var(--teal);}
-.m-good{background:rgba(126,212,94,.12);} .m-good .cal-m-name{color:var(--green);}
-.m-caution{background:rgba(232,184,75,.12);} .m-caution .cal-m-name{color:var(--amber);}
-.m-risk{background:rgba(232,112,112,.12);} .m-risk .cal-m-name{color:var(--coral);}
-.m-stop{background:rgba(232,80,80,.15);} .m-stop .cal-m-name{color:var(--red);}
+.alert-box{border-radius:8px;padding:14px 18px;margin-bottom:12px;display:flex;gap:12px;align-items:flex-start;}
+.alert-amber{background:rgba(232,184,75,.08);border:1px solid var(--amber-d);}
+.alert-teal{background:rgba(82,201,160,.08);border:1px solid var(--teal-d);}
+.alert-coral{background:rgba(232,112,112,.08);border:1px solid #6b1f1f;}
+.alert-icon{font-size:16px;flex-shrink:0;margin-top:1px;}
+.alert-text{font-size:12px;color:var(--muted);line-height:1.7;}
+.alert-text strong{color:var(--text);}
+.enso-box{background:rgba(232,184,75,.06);border:1px solid var(--amber-d);border-radius:10px;padding:18px 20px;margin-bottom:20px;}
+.enso-box h3{font-family:var(--serif);font-size:15px;font-weight:500;color:var(--amber);margin-bottom:10px;}
+.enso-box p{font-size:12px;color:var(--muted);line-height:1.7;}
+.enso-box p strong{color:var(--text);}
+.enso-list{list-style:none;margin-top:10px;display:flex;flex-direction:column;gap:6px;}
+.enso-list li{font-size:12px;color:var(--muted);display:flex;gap:8px;line-height:1.5;}
+.enso-list li::before{content:'→';color:var(--amber);flex-shrink:0;}
 .pill{display:inline-block;padding:2px 9px;border-radius:12px;font-size:10px;font-weight:500;white-space:nowrap;}
 .pill-high{background:rgba(232,80,80,.18);color:var(--red);}
 .pill-med{background:rgba(232,184,75,.18);color:var(--amber);}
 .pill-low{background:rgba(82,201,160,.18);color:var(--teal);}
 .pill-enso{background:rgba(192,126,232,.18);color:var(--purple);}
-.enso-card{background:rgba(232,184,75,.06);border:1px solid var(--amber-d);border-radius:10px;padding:18px 20px;}
-.enso-card h3{font-family:var(--serif);font-size:15px;font-weight:500;color:var(--amber);margin-bottom:10px;}
-.enso-card p{font-size:12px;color:var(--muted);line-height:1.7;}
-.enso-card p strong{color:var(--text);font-weight:500;}
-.enso-impact-list{list-style:none;margin-top:10px;display:flex;flex-direction:column;gap:6px;}
-.enso-impact-list li{font-size:12px;color:var(--muted);display:flex;gap:8px;line-height:1.5;}
-.enso-impact-list li::before{content:'→';color:var(--amber);flex-shrink:0;}
+.pill-opt{background:rgba(82,201,160,.25);color:var(--teal);}
 .risk-table{width:100%;border-collapse:collapse;font-size:12px;}
-.risk-table th{text-align:left;padding:8px 12px;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border-bottom:1px solid var(--border);}
-.risk-table td{padding:9px 12px;border-bottom:1px solid rgba(42,48,37,.6);vertical-align:top;}
-.risk-table tr:hover td{background:rgba(255,255,255,.02);}
+.risk-table th{text-align:left;padding:8px 12px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border-bottom:1px solid var(--border);}
+.risk-table td{padding:9px 12px;border-bottom:1px solid rgba(42,48,37,.6);vertical-align:top;color:var(--muted);}
+.risk-table td:first-child{color:var(--text);font-weight:500;}
+.proj-table{width:100%;border-collapse:collapse;font-size:12px;}
+.proj-table th{text-align:right;padding:8px 10px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border-bottom:1px solid var(--border);}
+.proj-table th:first-child{text-align:left;}
+.proj-table td{text-align:right;padding:7px 10px;border-bottom:1px solid rgba(42,48,37,.5);}
+.proj-table td:first-child{text-align:left;color:var(--muted);}
+.proj-table tr:hover td{background:rgba(255,255,255,.02);}
+.cal12{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;}
+.cal-month{border-radius:8px;padding:10px 6px 8px;text-align:center;cursor:pointer;}
+.cal-month:hover{opacity:.85;}
+.cal-m-name{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.4px;}
+.cal-m-icon{font-size:18px;margin:5px 0 4px;}
+.cal-m-score{font-size:14px;font-weight:500;font-family:var(--serif);}
+.cal-m-label{font-size:8px;margin-top:2px;opacity:.8;}
+.m-optimal{background:rgba(82,201,160,.15);} .m-optimal .cal-m-name{color:var(--teal);}
+.m-good{background:rgba(126,212,94,.12);} .m-good .cal-m-name{color:var(--green);}
+.m-caution{background:rgba(232,184,75,.12);} .m-caution .cal-m-name{color:var(--amber);}
+.m-risk{background:rgba(232,112,112,.12);} .m-risk .cal-m-name{color:var(--coral);}
+.m-none{background:rgba(80,80,80,.12);} .m-none .cal-m-name{color:var(--muted);}
+#month-detail27{display:none;margin-top:14px;}
+.ht-row{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+.ht-label{font-size:11px;color:var(--muted);width:130px;flex-shrink:0;text-align:right;}
+.ht-track{flex:1;height:24px;background:var(--bg3);border-radius:4px;position:relative;}
+.ht-seg{position:absolute;height:100%;border-radius:3px;}
+.ht-mo12{display:flex;padding-left:140px;margin-bottom:4px;}
+.ht-mo12 span{flex:1;text-align:center;font-size:9px;color:var(--muted);}
+.sc-row{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+.sc-label{font-size:12px;color:var(--muted);width:140px;flex-shrink:0;}
+.sc-track{flex:1;height:20px;background:var(--bg3);border-radius:4px;overflow:hidden;}
+.sc-fill{height:100%;border-radius:4px;display:flex;align-items:center;padding-left:8px;font-size:10px;font-weight:500;}
+.sc-pct{font-size:11px;color:var(--muted);width:36px;text-align:right;}
+.comp-table{width:100%;border-collapse:collapse;font-size:12px;}
+.comp-table th{text-align:right;padding:8px 10px;font-size:10px;font-weight:600;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);}
+.comp-table th:first-child{text-align:left;}
+.comp-table td{text-align:right;padding:7px 10px;border-bottom:1px solid rgba(42,48,37,.5);color:var(--muted);}
+.comp-table td:first-child{text-align:left;color:var(--text);}
 .legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;}
 .leg{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted);}
-.leg-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
-.ht-row{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
-.ht-label{font-size:11px;color:var(--muted);width:110px;flex-shrink:0;text-align:right;}
-.ht-track{flex:1;height:24px;background:var(--bg3);border-radius:4px;position:relative;}
-.ht-seg{position:absolute;height:100%;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:9px;overflow:hidden;white-space:nowrap;color:var(--text);}
-.ht-months{display:flex;gap:0;margin-bottom:4px;padding-left:120px;}
-.ht-mo{flex:1;text-align:center;font-size:9px;color:var(--muted);}
-.scenario-row{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
-.scenario-label{font-size:12px;color:var(--muted);width:140px;flex-shrink:0;}
-.scenario-track{flex:1;height:20px;background:var(--bg3);border-radius:4px;overflow:hidden;}
-.scenario-fill{height:100%;border-radius:4px;display:flex;align-items:center;padding-left:8px;font-size:10px;font-weight:500;}
-.scenario-pct{font-size:11px;color:var(--muted);width:36px;text-align:right;}
-#month-detail{display:none;margin-top:16px;}
-.season-bar{display:flex;height:28px;border-radius:6px;overflow:hidden;margin-top:12px;border:1px solid var(--border);}
-.season-seg{display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;}
-.seg-dry{background:rgba(227,167,51,.25);color:var(--amber);}
-.seg-wet{background:rgba(88,166,255,.2);color:var(--blue);}
+.leg-dot{width:10px;height:10px;border-radius:2px;}
+footer{padding:24px 32px 0;font-size:11px;color:var(--muted);border-top:1px solid var(--border);margin-top:32px;display:flex;gap:24px;flex-wrap:wrap;}
+@media(max-width:700px){.g2,.g4{grid-template-columns:1fr;}.cal12{grid-template-columns:repeat(4,1fr);}header,.tabs,.panel,footer{padding-left:16px;padding-right:16px;}}
 </style>
 </head>
 <body>
 <header>
-  <div class="h-left">
-    <h1>Salinas Maya Natural — <em>2027 Annual Forecast</em></h1>
-    <div class="h-sub">Full year outlook · El Niño moderate-to-strong scenario · Pacific Coast Guatemala 13.826°N, 90.297°W</div>
+  <div class="h-title">
+    <div class="h-badge">🧂</div>
+    <div>
+      <h1>Salinas Maya Natural &mdash; <em>2027 Annual Forecast</em></h1>
+      <div class="h-sub">Full year outlook &middot; El Ni&ntilde;o moderate-to-strong scenario &middot; Pacific Coast Guatemala</div>
+    </div>
   </div>
   <div class="h-right">
-    <div class="enso-badge"><span class="enso-dot"></span>El Niño Alert · 96% prob. Dec 2026–Feb 2027 · NOAA CPC</div>
-    <div class="source-tag">NOAA CPC · INSIVUMEH · Open-Meteo ERA5 · Issued May 20, 2026</div>
+    <div class="tag tag-coords">13.8262&deg;N, 90.2971&deg;W &middot; Chiquimulilla, Santa Rosa, GT</div>
+    <div class="tag tag-enso"><span class="enso-dot"></span>El Ni&ntilde;o Alert &middot; 96% prob. Dec 2026&ndash;Feb 2027 &middot; NOAA CPC</div>
+    <div class="source-tag">NOAA CPC &middot; INSIVUMEH &middot; Open-Meteo ERA5 &middot; Issued May 20, 2026</div>
   </div>
 </header>
+
 <div class="tabs">
-  <button class="tab active" onclick=\"showTab('overview',this)\" id="t-tab1">Executive Summary</button>
-  <button class="tab" onclick=\"showTab('calendar',this)\" id="t-tab2">Harvest Calendar</button>
-  <button class="tab" onclick=\"showTab('enso',this)\" id="t-tab3">El Niño Analysis</button>
-  <button class="tab" onclick=\"showTab('risks',this)\" id="t-tab4">Risk Matrix</button>
-  <button class="tab" onclick=\"showTab('monthly',this)\" id="t-tab5">Monthly Forecast</button>
+  <button class="tab active" onclick="switchTab('summary',this)">Executive Summary</button>
+  <button class="tab" onclick="switchTab('calendar',this)">Harvest Calendar</button>
+  <button class="tab" onclick="switchTab('enso',this)">El Ni&ntilde;o Analysis</button>
+  <button class="tab" onclick="switchTab('risks',this)">Risk Matrix</button>
+  <button class="tab" onclick="switchTab('monthly',this)">Monthly Forecast</button>
 </div>
 
-<!-- TAB 1: EXECUTIVE SUMMARY -->
-<div id="tab-overview" class="panel active">
-  <div class="sec-hd">
-    <div class="sec-title" id="<div class="sec-title" id="t-sec1">2027 outlook at a glance</div>
-    <div class="sec-note">Base scenario: moderate-to-strong El Niño persisting through Q1 2027, decaying in Q2</div>
-  </div>
-  <div class="g4" style="margin-bottom:20px">
-    <div class="card accent-teal">
-      <div class="kpi-label">Est. optimal harvest days</div>
-      <div class="kpi-row"><span class="kpi-val" style="color:var(--teal)">147</span><span class="kpi-unit">days</span><span class="kpi-delta delta-pos">+22 vs. normal</span></div>
-      <div class="kpi-sub">Jan–Apr · Nov–Dec · extended by dry spell</div>
-    </div>
-    <div class="card accent-amber">
-      <div class="kpi-label">Est. annual rainfall</div>
-      <div class="kpi-row"><span class="kpi-val" style="color:var(--amber)">1,580</span><span class="kpi-unit">mm</span><span class="kpi-delta delta-pos">−18% vs. avg</span></div>
-      <div class="kpi-sub">El Niño deficit May–Oct · more intense events</div>
-    </div>
-    <div class="card accent-coral">
-      <div class="kpi-label">Est. avg max temperature</div>
-      <div class="kpi-row"><span class="kpi-val" style="color:var(--coral)">35.8</span><span class="kpi-unit">°C</span><span class="kpi-delta delta-neg">+1.5°C vs. avg</span></div>
-      <div class="kpi-sub">El Niño thermal anomaly · dry months hotter</div>
-    </div>
-    <div class="card accent-blue">
-      <div class="kpi-label">Coastal flood risk</div>
-      <div class="kpi-row"><span class="kpi-val" style="color:var(--blue)">Low–Med</span></div>
-      <div class="kpi-sub">El Niño suppresses cyclone activity in E. Pacific</div>
-    </div>
-  </div>
-  <div class="enso-card" style="margin-bottom:20px">
-    <h3>⚡ ENSO context — El Niño 2026 → 2027</h3>
-    <p>According to NOAA CPC (May 2026), there is a <strong>96% probability</strong> of El Niño being active during the boreal winter 2026–27 (Dec–Feb). INSIVUMEH confirms a <strong>92% probability</strong> for the Jun–Aug 2026 trimester. This means the 2026 rainy season — which establishes the hydrological baseline for 2027 — will already be under El Niño influence, with rainfall deficits on the Guatemalan Pacific coast and an extended dry spell potentially reaching into September 2026.</p>
-    <ul class="enso-impact-list">
-      <li>Dry season 2027 (Jan–Apr) <strong>longer and hotter</strong>: harvest window extended 10–14 extra days vs. average.</li>
-      <li>Mid-summer dry spell 2027 (Jul–Aug) potentially prolonged if El Niño persists, creating a <strong>second production window within the rainy season</strong>.</li>
-      <li>Intense but brief rains in the second half of the rainy season (Sep–Oct): <strong>higher risk of extreme precipitation events</strong> concentrated in 24–72h windows.</li>
-      <li>Temperatures 1–2°C above average during dry months: <strong>accelerated evaporation</strong>, favorable for brine concentration.</li>
-      <li>Tropical cyclone activity in the Eastern Pacific <strong>reduced</strong> in El Niño years (historically lower formation in the Guatemala–Mexico basin).</li>
+<!-- TAB: EXECUTIVE SUMMARY -->
+<div id="tab-summary" class="panel active">
+  <div class="sec-title">2027 outlook at a glance</div>
+  <div class="enso-box">
+    <h3>&#x26a1; ENSO context &mdash; El Ni&ntilde;o 2026 &rarr; 2027</h3>
+    <p>According to NOAA CPC (May 2026), there is a <strong>96% probability</strong> of El Ni&ntilde;o being active during boreal winter 2026&ndash;27 (Dec&ndash;Feb). INSIVUMEH confirms a <strong>92% probability</strong> for Jun&ndash;Aug 2026. The 2026 rainy season will already be under El Ni&ntilde;o influence, establishing a drier hydrological baseline for 2027.</p>
+    <ul class="enso-list">
+      <li>Dry season 2027 (Jan&ndash;Apr) <strong>longer and hotter</strong>: harvest window extended 10&ndash;14 extra days vs. average.</li>
+      <li>Mid-summer dry spell 2027 (Jul&ndash;Aug) potentially prolonged, creating a <strong>second production window within the rainy season</strong>.</li>
+      <li>Intense but brief rains in Sep&ndash;Oct: <strong>higher risk of extreme precipitation events</strong> concentrated in 24&ndash;72h windows.</li>
+      <li>Temperatures 1&ndash;2&deg;C above average during dry months: <strong>accelerated evaporation</strong>, favorable for brine concentration.</li>
+      <li>Eastern Pacific cyclone activity <strong>reduced</strong> under El Ni&ntilde;o years (historically lower formation rates).</li>
     </ul>
   </div>
-  <div class="sec-hd"><div class="sec-title" id="<div class="sec-title" id="t-sec2">2027 production scenarios</div></div>
-  <div class="card" style="margin-bottom:20px">
-    <div style="font-size:11px;color:var(--muted);margin-bottom:16px">Probability estimates under moderate-to-strong El Niño</div>
-    <div class="scenario-row"><div class="scenario-label">High production</div><div class="scenario-track"><div class="scenario-fill" style="width:55%;background:rgba(82,201,160,.5);color:var(--teal)">Extended harvest · low rainfall</div></div><div class="scenario-pct">55%</div></div>
-    <div class="scenario-row"><div class="scenario-label">Normal production</div><div class="scenario-track"><div class="scenario-fill" style="width:30%;background:rgba(232,184,75,.4);color:var(--amber)">Moderate dry spell</div></div><div class="scenario-pct">30%</div></div>
-    <div class="scenario-row"><div class="scenario-label">Reduced production</div><div class="scenario-track"><div class="scenario-fill" style="width:15%;background:rgba(232,80,80,.4);color:var(--red)">Extreme rain damages ponds</div></div><div class="scenario-pct">15%</div></div>
-    <div style="font-size:10px;color:var(--muted);margin-top:10px">* "Reduced production" scenario triggered by extreme concentrated rainfall (>80mm/24h) dissolving crystallization. Probability derived from historical El Niño extreme-event records for the Guatemala Pacific coast.</div>
+
+  <div class="g4">
+    <div class="card teal"><div class="kpi-label">Est. optimal harvest days</div><div class="kpi-val" style="color:var(--teal)">147<span class="kpi-unit">days</span><span class="kpi-delta delta-pos">+22 vs. normal</span></div><div class="kpi-sub">Jan&ndash;Apr &middot; Nov&ndash;Dec &middot; extended by dry spell</div></div>
+    <div class="card coral"><div class="kpi-label">Est. annual rainfall</div><div class="kpi-val" style="color:var(--coral)">1,580<span class="kpi-unit">mm</span><span class="kpi-delta delta-pos">&minus;18% vs. avg</span></div><div class="kpi-sub">El Ni&ntilde;o deficit May&ndash;Oct &middot; more intense events</div></div>
+    <div class="card amber"><div class="kpi-label">Est. avg max temperature</div><div class="kpi-val" style="color:var(--amber)">35.8<span class="kpi-unit">&deg;C</span><span class="kpi-delta delta-neg">+1.5&deg;C vs. avg</span></div><div class="kpi-sub">El Ni&ntilde;o thermal anomaly &middot; dry months hotter</div></div>
+    <div class="card green"><div class="kpi-label">Coastal flood risk</div><div class="kpi-val" style="color:var(--green);font-size:18px">Low&ndash;Med</div><div class="kpi-sub">El Ni&ntilde;o suppresses cyclone activity in E. Pacific</div></div>
   </div>
-  <div class="sec-hd"><div class="sec-title" id="<div class="sec-title" id="t-sec3">Projected evaporation index — monthly 2027</div></div>
-  <div class="chart-box">
-    <div class="chart-title">Salt production potential by month · blue = ERA5 historical avg · orange = El Niño 2027 projection</div>
-    <div class="chart-wrap-lg"><canvas id="ch-evap-comp"></canvas></div>
+
+  <div class="sec-title">2027 production scenarios</div>
+  <div class="chart-card">
+    <div class="chart-title">Probability estimates under moderate-to-strong El Ni&ntilde;o</div>
+    <div class="sc-row"><div class="sc-label">High production</div><div class="sc-track"><div class="sc-fill" style="width:55%;background:rgba(82,201,160,.5);color:var(--teal)">Extended harvest &middot; low rainfall</div></div><div class="sc-pct" style="color:var(--teal)">55%</div></div>
+    <div class="sc-row"><div class="sc-label">Normal production</div><div class="sc-track"><div class="sc-fill" style="width:30%;background:rgba(232,184,75,.4);color:var(--amber)">Moderate dry spell</div></div><div class="sc-pct" style="color:var(--amber)">30%</div></div>
+    <div class="sc-row"><div class="sc-label">Reduced production</div><div class="sc-track"><div class="sc-fill" style="width:15%;background:rgba(232,80,80,.4);color:var(--red)">Extreme rain damages ponds</div></div><div class="sc-pct" style="color:var(--red)">15%</div></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:10px">&ldquo;Reduced production&rdquo; triggered by extreme concentrated rainfall (&gt;80mm/24h) dissolving crystallization. Probability derived from historical El Ni&ntilde;o extreme-event records for the Guatemala Pacific coast.</div>
+  </div>
+
+  <div class="sec-title">Projected evaporation index &mdash; monthly 2027</div>
+  <div class="chart-card">
+    <div class="chart-title">Salt production potential by month &middot; blue = ERA5 historical avg (5-year) &middot; orange = El Ni&ntilde;o 2027 projection</div>
+    <div class="chart-wrap-lg"><canvas id="ch-evap"></canvas></div>
     <div class="legend">
       <div class="leg"><div class="leg-dot" style="background:#70b8e8"></div>ERA5 historical average (5-year)</div>
-      <div class="leg"><div class="leg-dot" style="background:#e8b84b"></div>El Niño 2027 projection (moderate scenario)</div>
+      <div class="leg"><div class="leg-dot" style="background:#e8b84b"></div>El Ni&ntilde;o 2027 projection</div>
     </div>
   </div>
 </div>
 
-<!-- TAB 2: HARVEST CALENDAR -->
+<!-- TAB: HARVEST CALENDAR -->
 <div id="tab-calendar" class="panel">
-  <div class="sec-hd">
-    <div class="sec-title" id="<div class="sec-title" id="t-sec4">2027 operational calendar</div>
-    <div class="sec-note">Adjusted for moderate-to-strong El Niño projection · click any month for details</div>
-  </div>
-  <div class="card" style="margin-bottom:20px">
-    <div style="font-size:11px;color:var(--muted);margin-bottom:14px">Guatemala Pacific coast seasons</div>
-    <div class="season-bar">
-      <div class="season-seg seg-dry" style="width:33.3%">Dry season (Jan–Apr)</div>
-      <div class="season-seg seg-wet" style="width:50%">Rainy season (May–Oct)</div>
-      <div class="season-seg seg-dry" style="width:16.7%">Dry (Nov–Dec)</div>
+  <div class="sec-title">2027 operational calendar</div>
+  <div class="chart-card">
+    <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Adjusted for moderate-to-strong El Ni&ntilde;o &middot; click any month for details</div>
+    <div style="display:flex;gap:10px;margin-bottom:10px;font-size:10px;color:var(--muted)">
+      <span style="flex:4;text-align:center;background:rgba(82,201,160,.1);border-radius:4px;padding:4px">Dry season (Jan&ndash;Apr)</span>
+      <span style="flex:6;text-align:center;background:rgba(112,184,232,.1);border-radius:4px;padding:4px">Rainy season (May&ndash;Oct)</span>
+      <span style="flex:2;text-align:center;background:rgba(82,201,160,.1);border-radius:4px;padding:4px">Dry (Nov&ndash;Dec)</span>
     </div>
-    <div class="cal-grid" id="cal12" style="margin-top:14px"></div>
-    <div class="legend" style="margin-top:14px">
-      <div class="leg"><div class="leg-dot" style="background:rgba(82,201,160,.4)"></div>Optimal — harvest</div>
+    <div class="cal12" id="cal12"></div>
+    <div class="legend" style="margin-top:12px">
+      <div class="leg"><div class="leg-dot" style="background:rgba(82,201,160,.4)"></div>Optimal</div>
       <div class="leg"><div class="leg-dot" style="background:rgba(126,212,94,.3)"></div>Good</div>
-      <div class="leg"><div class="leg-dot" style="background:rgba(232,184,75,.3)"></div>Caution / Dry spell window</div>
+      <div class="leg"><div class="leg-dot" style="background:rgba(232,184,75,.3)"></div>Caution / Dry spell</div>
       <div class="leg"><div class="leg-dot" style="background:rgba(232,112,112,.3)"></div>Risk</div>
-      <div class="leg"><div class="leg-dot" style="background:rgba(232,80,80,.3)"></div>No operations</div>
+      <div class="leg"><div class="leg-dot" style="background:rgba(80,80,80,.2)"></div>No operations</div>
     </div>
+    <div id="month-detail27" class="card teal"></div>
   </div>
-  <div id="month-detail" class="card accent-teal"></div>
-  <div class="sec-hd" style="margin-top:20px"><div class="sec-title" id="<div class="sec-title" id="t-sec5">Activity timeline · full year 2027</div></div>
-  <div class="chart-box">
-    <div class="ht-months" id="ht-headers"></div>
+
+  <div class="sec-title">Activity timeline &middot; full year 2027</div>
+  <div class="chart-card">
+    <div class="ht-mo12"><span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span><span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span><span>Nov</span><span>Dec</span></div>
     <div id="timeline12"></div>
   </div>
 </div>
 
-<!-- TAB 3: EL NIÑO ANALYSIS -->
+<!-- TAB: EL NINO ANALYSIS -->
 <div id="tab-enso" class="panel">
-  <div class="sec-hd"><div class="sec-title" id="<div class="sec-title" id="t-sec6">El Niño 2026–2027 — impact on the salt operation</div></div>
-  <div class="g2" style="margin-bottom:20px">
-    <div class="enso-card">
-      <h3>What does El Niño mean for Guatemala's Pacific coast?</h3>
-      <p>El Niño warms the equatorial Pacific, weakening the trade winds and reducing the moisture that normally drives rainfall on Guatemala's Pacific slope. INSIVUMEH consistently documents <strong>15–30% rainfall deficits</strong> on the Pacific coast during moderate El Niño events, with the mid-summer dry spell extending to 8–10 weeks (vs. the normal 4–6 weeks).</p>
-      <ul class="enso-impact-list">
-        <li><strong>Pacific SST off Escuintla:</strong> rises ~1.3–1.4°C above normal at event peak (Dec–Mar).</li>
-        <li><strong>2027 rain onset:</strong> may be delayed 2–3 weeks vs. average (normally May), extending the dry season.</li>
-        <li><strong>2027 rain season end:</strong> possibly early October, shortening the late rainy season.</li>
-        <li><strong>Second-half rainfall:</strong> more intense and concentrated in short burst events (risk of pond damage from high 24h accumulations).</li>
-      </ul>
-    </div>
-    <div class="enso-card" style="background:rgba(112,184,232,.06);border-color:var(--blue-d)">
-      <h3 style="color:var(--blue)">El Niño vs. La Niña vs. Neutral — historical comparison</h3>
-      <p style="margin-bottom:10px">Average historical impact on key variables for the Guatemala Pacific coast:</p>
-      <table style="width:100%;font-size:11px;border-collapse:collapse">
-        <thead><tr style="border-bottom:1px solid var(--border)">
-          <th style="text-align:left;padding:6px 8px;color:var(--muted)">Variable</th>
-          <th style="padding:6px 8px;color:var(--coral)">El Niño</th>
-          <th style="padding:6px 8px;color:var(--blue)">La Niña</th>
-          <th style="padding:6px 8px;color:var(--muted)">Neutral</th>
-        </tr></thead>
+  <div class="sec-title">El Ni&ntilde;o 2026&ndash;2027 &mdash; impact on the salt operation</div>
+  <div class="enso-box">
+    <h3>What does El Ni&ntilde;o mean for Guatemala&rsquo;s Pacific coast?</h3>
+    <p>El Ni&ntilde;o warms the equatorial Pacific, weakening the trade winds and reducing the moisture that normally drives rainfall on Guatemala&rsquo;s Pacific slope. INSIVUMEH consistently documents <strong>15&ndash;30% rainfall deficits</strong> on the Pacific coast during moderate El Ni&ntilde;o events, with the mid-summer dry spell extending to 8&ndash;10 weeks (vs. the normal 4&ndash;6 weeks).</p>
+    <ul class="enso-list">
+      <li><strong>Pacific SST off Chiquimulilla:</strong> rises ~1.3&ndash;1.4&deg;C above normal at event peak (Dec&ndash;Mar).</li>
+      <li><strong>2027 rain onset:</strong> may be delayed 2&ndash;3 weeks vs. average (normally May), extending the dry season.</li>
+      <li><strong>2027 rain season end:</strong> possibly early October, shortening the late rainy season.</li>
+      <li><strong>Second-half rainfall:</strong> more intense and concentrated in short burst events (risk of pond damage from high 24h accumulations).</li>
+    </ul>
+  </div>
+
+  <div class="sec-title">El Ni&ntilde;o vs. La Ni&ntilde;a vs. Neutral &mdash; historical comparison</div>
+  <div class="chart-card">
+    <div class="chart-title">Average historical impact on key variables for the Guatemala Pacific coast</div>
+    <div style="overflow-x:auto">
+      <table class="comp-table">
+        <thead><tr><th>Variable</th><th>El Ni&ntilde;o</th><th>La Ni&ntilde;a</th><th>Neutral</th></tr></thead>
         <tbody>
-          <tr><td style="padding:6px 8px;color:var(--muted)">Annual rainfall</td><td style="text-align:center;padding:6px 8px;color:var(--teal)">−15 to −30%</td><td style="text-align:center;padding:6px 8px;color:var(--coral)">+10 to +25%</td><td style="text-align:center;padding:6px 8px">Normal</td></tr>
-          <tr><td style="padding:6px 8px;color:var(--muted)">Max temperature</td><td style="text-align:center;padding:6px 8px;color:var(--coral)">+1 to +2°C</td><td style="text-align:center;padding:6px 8px;color:var(--blue)">−0.5 to −1°C</td><td style="text-align:center;padding:6px 8px">Normal</td></tr>
-          <tr><td style="padding:6px 8px;color:var(--muted)">Dry spell duration</td><td style="text-align:center;padding:6px 8px;color:var(--amber)">8–10 wks</td><td style="text-align:center;padding:6px 8px;color:var(--blue)">3–5 wks</td><td style="text-align:center;padding:6px 8px">4–6 wks</td></tr>
-          <tr><td style="padding:6px 8px;color:var(--muted)">E. Pacific cyclones</td><td style="text-align:center;padding:6px 8px;color:var(--teal)">Reduced</td><td style="text-align:center;padding:6px 8px;color:var(--coral)">Increased</td><td style="text-align:center;padding:6px 8px">Normal</td></tr>
-          <tr><td style="padding:6px 8px;color:var(--muted)">Optimal harvest days</td><td style="text-align:center;padding:6px 8px;color:var(--teal)">+20 to +30</td><td style="text-align:center;padding:6px 8px;color:var(--coral)">−15 to −25</td><td style="text-align:center;padding:6px 8px">~120 days</td></tr>
-          <tr><td style="padding:6px 8px;color:var(--muted)">Evaporation index</td><td style="text-align:center;padding:6px 8px;color:var(--teal)">+15 to +25%</td><td style="text-align:center;padding:6px 8px;color:var(--coral)">−10 to −20%</td><td style="text-align:center;padding:6px 8px">Baseline</td></tr>
+          <tr><td>Annual rainfall</td><td style="color:var(--teal)">&minus;15 to &minus;30%</td><td style="color:var(--coral)">+10 to +25%</td><td>Normal</td></tr>
+          <tr><td>Max temperature</td><td style="color:var(--coral)">+1 to +2&deg;C</td><td style="color:var(--teal)">&minus;0.5 to &minus;1&deg;C</td><td>Normal</td></tr>
+          <tr><td>Dry spell duration</td><td style="color:var(--teal)">8&ndash;10 wks</td><td style="color:var(--coral)">3&ndash;5 wks</td><td>4&ndash;6 wks</td></tr>
+          <tr><td>E. Pacific cyclones</td><td style="color:var(--teal)">Reduced</td><td style="color:var(--coral)">Increased</td><td>Normal</td></tr>
+          <tr><td>Optimal harvest days</td><td style="color:var(--teal)">+20 to +30</td><td style="color:var(--coral)">&minus;15 to &minus;25</td><td>~120 days</td></tr>
+          <tr><td>Evaporation index</td><td style="color:var(--teal)">+15 to +25%</td><td style="color:var(--coral)">&minus;10 to &minus;20%</td><td>Baseline</td></tr>
         </tbody>
       </table>
     </div>
   </div>
-  <div class="sec-hd"><div class="sec-title" id="<div class="sec-title" id="t-sec7">Projected vs. historical monthly rainfall</div></div>
-  <div class="chart-box" style="margin-bottom:20px">
-    <div class="chart-title">mm/month · Historical ERA5 vs. El Niño 2027 projection · moderate-to-strong scenario</div>
-    <div class="chart-wrap-lg"><canvas id="ch-prec-enso"></canvas></div>
-    <div class="legend">
-      <div class="leg"><div class="leg-dot" style="background:#70b8e8"></div>Historical average</div>
-      <div class="leg"><div class="leg-dot" style="background:#e8b84b"></div>El Niño 2027 projection</div>
-      <div class="leg"><div class="leg-dot" style="background:rgba(82,201,160,.5)"></div>Upper range El Niño (+1σ)</div>
+
+  <div class="g2">
+    <div>
+      <div class="sec-title">Projected vs. historical monthly rainfall</div>
+      <div class="chart-card"><div class="chart-title">mm/month &middot; ERA5 historical vs. El Ni&ntilde;o 2027 projection</div><div class="chart-wrap"><canvas id="ch-prec"></canvas></div></div>
+    </div>
+    <div>
+      <div class="sec-title">Temperature projection 2027</div>
+      <div class="chart-card"><div class="chart-title">Monthly avg max temp &deg;C</div><div class="chart-wrap"><canvas id="ch-temp"></canvas></div></div>
     </div>
   </div>
-  <div class="g2">
-    <div><div class="sec-hd"><div class="sec-title" id="<div class="sec-title" id="t-sec8">Temperature projection 2027</div></div>
-    <div class="chart-box"><div class="chart-title">Monthly avg max temp °C</div><div class="chart-wrap"><canvas id="ch-temp-enso"></canvas></div></div></div>
-    <div><div class="sec-hd"><div class="sec-title" id="<div class="sec-title" id="t-sec9">Relative humidity projection 2027</div></div>
-    <div class="chart-box"><div class="chart-title">Monthly avg humidity %</div><div class="chart-wrap"><canvas id="ch-hum-enso"></canvas></div></div></div>
+  <div>
+    <div class="sec-title">Relative humidity projection 2027</div>
+    <div class="chart-card"><div class="chart-title">Monthly avg humidity %</div><div class="chart-wrap"><canvas id="ch-hum"></canvas></div></div>
   </div>
 </div>
 
-<!-- TAB 4: RISKS -->
+<!-- TAB: RISK MATRIX -->
 <div id="tab-risks" class="panel">
-  <div class="sec-hd">
-    <div class="sec-title" id="<div class="sec-title" id="t-sec10">Risk matrix 2027</div>
-    <div class="sec-note">Under moderate-to-strong El Niño scenario confirmed by NOAA/INSIVUMEH</div>
-  </div>
-  <div class="card" style="margin-bottom:20px">
+  <div class="sec-title">Risk matrix 2027</div>
+  <div class="chart-card" style="margin-bottom:20px;overflow-x:auto">
     <table class="risk-table">
       <thead><tr><th>Risk</th><th>Probability</th><th>Critical months</th><th>Impact on operation</th><th>Recommended action</th></tr></thead>
       <tbody id="risk-tbody"></tbody>
     </table>
   </div>
   <div class="g2">
-    <div class="card accent-amber">
-      <div class="kpi-label">Primary risk — concentrated extreme rainfall</div>
-      <p style="font-size:12px;color:var(--muted);line-height:1.7;margin-top:6px">Under El Niño, while total annual rainfall decreases, individual events can be more intense and concentrated over a few hours. On Guatemala's Pacific coast, the risk of >80mm/24h accumulations in Sep–Oct historically increases during El Niño years. This is the most operationally relevant risk for the salt ponds as it can dissolve already-formed crystallization.</p>
+    <div class="alert-box alert-teal" style="border-radius:10px;background:rgba(82,201,160,.06);border:1px solid var(--teal-d)">
+      <div class="alert-icon">&#x2736;</div>
+      <div class="alert-text"><strong style="color:var(--teal)">Primary opportunity &mdash; extended dry spell:</strong> The 2026 mid-summer dry spell is already forecast at 8&ndash;10 weeks. This sets up 2027 for a potentially productive July&ndash;August window. Planning an additional concentration cycle with pond preparation beginning in June can meaningfully increase annual output.</div>
     </div>
-    <div class="card accent-teal">
-      <div class="kpi-label">Primary opportunity — extended dry spell</div>
-      <p style="font-size:12px;color:var(--muted);line-height:1.7;margin-top:6px">The 2026 dry spell is already forecast at up to 10 weeks per INSIVUMEH. This sets up 2027 for a potentially productive July–August window — something not available in neutral or La Niña years. Planning an additional concentration cycle during this period, with pond preparation beginning in June, can meaningfully increase annual output.</p>
+    <div class="alert-box alert-coral" style="border-radius:10px;background:rgba(232,112,112,.06);border:1px solid #6b1f1f">
+      <div class="alert-icon">&#x26a0;</div>
+      <div class="alert-text"><strong style="color:var(--coral)">Primary risk &mdash; concentrated extreme rainfall:</strong> While total annual rainfall decreases, individual events can be more intense. On Guatemala&rsquo;s Pacific coast, risk of &gt;80mm/24h accumulations in Sep&ndash;Oct historically increases during El Ni&ntilde;o. This can dissolve already-formed crystallization.</div>
     </div>
   </div>
 </div>
 
-<!-- TAB 5: MONTHLY FORECAST -->
+<!-- TAB: MONTHLY FORECAST -->
 <div id="tab-monthly" class="panel">
-  <div class="sec-hd">
-    <div class="sec-title" id="<div class="sec-title" id="t-sec11">Monthly detailed forecast — full year 2027</div>
-    <div class="sec-note">Key variables with uncertainty ranges · moderate-to-strong El Niño scenario</div>
-  </div>
-  <div class="chart-box" style="margin-bottom:16px">
-    <div class="chart-title">Rainfall · Max temperature · Evaporation index — all 12 months of 2027</div>
+  <div class="sec-title">Monthly detailed forecast &mdash; full year 2027</div>
+  <div class="chart-card" style="margin-bottom:16px">
+    <div class="chart-title">Rainfall &middot; Max temperature &middot; Evaporation index &mdash; all 12 months of 2027</div>
     <div class="chart-wrap-lg"><canvas id="ch-full"></canvas></div>
   </div>
-  <div class="card">
-    <div style="font-size:11px;color:var(--muted);margin-bottom:14px">All values include ENSO adjustment for moderate El Niño. Ranges reflect ±1σ from historical El Niño episodes in this region.</div>
+  <div class="chart-card">
+    <div style="font-size:11px;color:var(--muted);margin-bottom:12px">All values include ENSO adjustment for moderate-to-strong El Ni&ntilde;o. Ranges reflect &plusmn;1&sigma; from historical El Ni&ntilde;o episodes in this region.</div>
     <div style="overflow-x:auto">
-      <table class="risk-table">
-        <thead><tr><th>Month</th><th>Max Temp °C</th><th>Min Temp °C</th><th>Humidity %</th><th>Rainfall mm</th><th>Wind km/h</th><th>Evap. Index</th><th>Harvest status</th></tr></thead>
+      <table class="proj-table">
+        <thead><tr><th>Month</th><th>Max &deg;C</th><th>Min &deg;C</th><th>Humidity %</th><th>Rainfall mm</th><th>Wind km/h</th><th>Evap. Index</th><th>Harvest status</th></tr></thead>
         <tbody id="proj-tbody"></tbody>
       </table>
     </div>
   </div>
 </div>
 
+<footer>
+  <span>Climate: Open-Meteo ERA5-Land &middot; ECMWF</span>
+  <span>NOAA CPC &middot; INSIVUMEH</span>
+  <span>13.8262&deg;N, 90.2971&deg;W &middot; Chiquimulilla, Santa Rosa, Guatemala</span>
+  <span>Issued May 20, 2026</span>
+</footer>
+
 <script>
-const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const MONTHS_FULL=['January','February','March','April','May','June','July','August','September','October','November','December'];
-const hist={
-  tmax:[34.2,35.1,36.4,36.8,34.5,32.8,33.2,33.4,32.9,32.6,33.5,33.8],
-  tmin:[21.8,22.3,23.1,23.6,23.4,23.2,23.0,23.1,22.8,22.5,22.2,21.9],
-  rh:[62,60,57,60,76,84,82,83,85,86,76,65],
-  prec:[8,6,12,30,185,290,230,260,310,275,68,18],
-  wind:[14.2,15.8,17.1,15.4,12.3,11.8,13.2,12.6,10.8,10.4,11.9,13.1]
+var MO12 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+var MO12F = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+var hist12 = {
+  tmax:[32.9,33.0,33.0,33.2,32.1,29.6,31.4,30.8,30.3,30.0,31.2,32.5],
+  tmin:[23.4,23.3,24.5,25.0,25.4,24.5,24.6,24.6,24.4,24.0,23.6,23.7],
+  rh:  [61,59,65,67,76,84,78,81,82,82,73,64],
+  prec:[3,8,17,58,131,386,151,195,260,246,116,15],
+  wind:[9.9,11.3,9.5,9.3,7.9,7.5,7.3,7.2,7.2,7.3,7.4,9.4]
 };
-const enso={
-  tmax_d:[+1.2,+1.4,+1.6,+1.5,+1.2,+0.8,+0.9,+1.0,+0.7,+0.6,+0.8,+1.1],
-  rh_d:[-4,-5,-5,-4,-6,-8,-7,-8,-5,-4,-3,-3],
-  prec_f:[0.90,0.88,0.85,0.82,0.78,0.72,0.75,0.73,0.82,0.85,0.90,0.92],
-  wind_d:[+1.2,+1.5,+1.8,+1.3,+0.8,+0.5,+0.7,+0.6,+0.3,+0.2,+0.5,+0.9]
-};
-const proj=MONTHS.map((_,i)=>{
-  const tmax=hist.tmax[i]+enso.tmax_d[i],tmin=hist.tmin[i]+enso.tmax_d[i]*0.5;
-  const rh=hist.rh[i]+enso.rh_d[i],prec=hist.prec[i]*enso.prec_f[i];
-  const wind=hist.wind[i]+enso.wind_d[i];
-  const evap=(tmax*(1-rh/100)*Math.sqrt(wind))/10;
-  const evap_hist=(hist.tmax[i]*(1-hist.rh[i]/100)*Math.sqrt(hist.wind[i]))/10;
-  return{tmax,tmin,rh,prec,wind,evap,evap_hist,prec_hi:prec*1.15,prec_lo:prec*0.85};
+var dt = [+1.2,+1.4,+1.6,+1.5,+1.2,+0.8,+0.9,+1.0,+0.7,+0.6,+0.8,+1.1];
+var pf = [0.90,0.88,0.85,0.82,0.78,0.72,0.75,0.73,0.82,0.85,0.90,0.92];
+var wd = [+1.2,+1.5,+1.8,+1.3,+0.8,+0.5,+0.7,+0.6,+0.3,+0.2,+0.5,+0.9];
+
+var proj = MO12.map(function(_,i){
+  var tm = Math.round((hist12.tmax[i]+dt[i])*10)/10;
+  var tn = Math.round((hist12.tmin[i]+dt[i]*0.5)*10)/10;
+  var rh = Math.round(hist12.rh[i]+[-4,-4,-3,-4,-5,-7,-5,-6,-4,-3,-3,-3][i]);
+  var pr = Math.round(hist12.prec[i]*pf[i]);
+  var wi = Math.round((hist12.wind[i]+wd[i])*10)/10;
+  var ev = Math.round((tm*(1-rh/100)*Math.sqrt(wi))/10*100)/100;
+  var ev_h = Math.round((hist12.tmax[i]*(1-hist12.rh[i]/100)*Math.sqrt(hist12.wind[i]))/10*100)/100;
+  return {tm:tm,tn:tn,rh:rh,pr:pr,wi:wi,ev:ev,ev_h:ev_h};
 });
 
-const cal12Data=[
-  {state:'optimal',icon:'☀️',score:'9.4',note:'Peak dry season. Ideal conditions: high temp, low humidity, strong northerly winds. Harvest everything available. Max temp: ~35.4°C · Humidity: ~58% · Est. rainfall: ~7mm'},
-  {state:'optimal',icon:'☀️',score:'9.8',note:'Driest and hottest month of the year under El Niño. Maximum evaporation. Absolute harvest priority. Max temp: ~36.5°C · Humidity: ~55% · Est. rainfall: ~5mm'},
-  {state:'optimal',icon:'🌤',score:'9.2',note:'Extreme max temperatures. Excellent evaporation. Strong northerly winds. Schedule morning shifts due to extreme midday heat. Max temp: ~38.0°C · Humidity: ~52% · Est. rainfall: ~10mm'},
-  {state:'good',icon:'🌤',score:'7.8',note:'Gradual transition. Very high temps persist. Some isolated showers. Active harvest with close monitoring. Max temp: ~38.3°C · Humidity: ~56% · Est. rainfall: ~25mm'},
-  {state:'caution',icon:'⛅',score:'5.1',note:'Under El Niño the onset of rains may be delayed 2–3 weeks vs. historical average (normally starts May). Take advantage of the first two weeks. Max temp: ~35.7°C · Humidity: ~70% · Est. rainfall: ~145mm'},
-  {state:'risk',icon:'🌧',score:'2.8',note:'Active rainy season. No production. Infrastructure maintenance, pond waterproofing, and preparation for dry spell cycle. Max temp: ~33.6°C · Humidity: ~76% · Est. rainfall: ~209mm'},
-  {state:'caution',icon:'⛅',score:'4.6',note:'EL NIÑO OPPORTUNITY: Extended dry spell (canícula) up to 8–10 weeks. Partial production window during rain pause (est. Jul 15–Aug 20). Prepare ponds by June 30. Max temp: ~34.1°C · Humidity: ~75% · Est. rainfall: ~173mm'},
-  {state:'caution',icon:'⛅',score:'4.3',note:'Under El Niño 2027 the dry spell may extend into early September. Second concentration window possible. Monitor closely for rain return. Max temp: ~34.4°C · Humidity: ~75% · Est. rainfall: ~190mm'},
-  {state:'risk',icon:'⛈',score:'2.2',note:'ALERT: Highest risk of concentrated extreme rainfall in 24–48h windows. While total monthly rain is below average, individual events are more intense under El Niño. Daily monitoring critical. Max temp: ~33.6°C · Humidity: ~80% · Est. rainfall: ~254mm'},
-  {state:'risk',icon:'⛈',score:'2.5',note:'End of rainy season. Under El Niño this may arrive early (2nd half of October). Prepare ponds for Nov–Dec production cycle. Monitor residual rainfall. Max temp: ~33.2°C · Humidity: ~82% · Est. rainfall: ~234mm'},
-  {state:'good',icon:'🌤',score:'7.2',note:'Dry season transition. Conditions improve rapidly. Begin new concentration cycle. Good harvest window in the 2nd half of the month. Max temp: ~34.3°C · Humidity: ~73% · Est. rainfall: ~61mm'},
-  {state:'optimal',icon:'☀️',score:'8.6',note:'Full dry season. El Niño conditions favorable. Intensive harvest. Under El Niño, cool December nights may be more pronounced. Build stock for Jan–Apr 2027. Max temp: ~34.9°C · Humidity: ~62% · Est. rainfall: ~17mm'}
+var G='rgba(42,48,37,0.7)';
+Chart.defaults.color='#6b7d62';
+Chart.defaults.font.family="'DM Mono',monospace";
+Chart.defaults.font.size=11;
+var bO={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false,backgroundColor:'#1c2117',borderColor:'#2a3025',borderWidth:1,titleColor:'#dde8d4',bodyColor:'#6b7d62',padding:10}},scales:{x:{grid:{color:G}},y:{grid:{color:G}}}};
+
+new Chart(document.getElementById('ch-evap'),{type:'bar',data:{labels:MO12,datasets:[
+  {label:'Historical',data:proj.map(function(r){return r.ev_h;}),backgroundColor:'rgba(112,184,232,.3)',borderColor:'#70b8e8',borderWidth:1,borderRadius:3},
+  {label:'El Niño 2027',data:proj.map(function(r){return r.ev;}),backgroundColor:proj.map(function(r){return r.ev>7?'rgba(82,201,160,.7)':r.ev>4?'rgba(82,201,160,.5)':r.ev>2?'rgba(232,184,75,.5)':'rgba(232,112,112,.4)';}),borderWidth:0,borderRadius:3}
+]},options:{...bO,plugins:{...bO.plugins,legend:{display:true,labels:{color:'#6b7d62',boxWidth:10,font:{size:10}}}}}});
+
+new Chart(document.getElementById('ch-prec'),{type:'bar',data:{labels:MO12,datasets:[
+  {label:'Historical',data:hist12.prec,backgroundColor:'rgba(112,184,232,.35)',borderColor:'#70b8e8',borderWidth:1,borderRadius:2},
+  {label:'El Niño 2027',data:proj.map(function(r){return r.pr;}),backgroundColor:'rgba(232,184,75,.45)',borderColor:'#e8b84b',borderWidth:1,borderRadius:2}
+]},options:{...bO,plugins:{...bO.plugins,legend:{display:true,labels:{color:'#6b7d62',boxWidth:10,font:{size:10}}}}}});
+
+new Chart(document.getElementById('ch-temp'),{type:'line',data:{labels:MO12,datasets:[
+  {label:'Historical',data:hist12.tmax,borderColor:'#70b8e8',fill:false,tension:.35,pointRadius:0,borderWidth:1.5,borderDash:[4,3]},
+  {label:'El Niño 2027',data:proj.map(function(r){return r.tm;}),borderColor:'#e87070',fill:false,tension:.35,pointRadius:3,borderWidth:2}
+]},options:{...bO,plugins:{...bO.plugins,legend:{display:true,labels:{color:'#6b7d62',boxWidth:10,font:{size:10}}}}}});
+
+new Chart(document.getElementById('ch-hum'),{type:'line',data:{labels:MO12,datasets:[
+  {label:'Historical',data:hist12.rh,borderColor:'#70b8e8',fill:false,tension:.35,pointRadius:0,borderWidth:1.5,borderDash:[4,3]},
+  {label:'El Niño 2027',data:proj.map(function(r){return r.rh;}),borderColor:'#52c9a0',backgroundColor:'rgba(82,201,160,.08)',fill:true,tension:.35,pointRadius:0,borderWidth:2}
+]},options:{...bO,plugins:{...bO.plugins,legend:{display:true,labels:{color:'#6b7d62',boxWidth:10,font:{size:10}}}},scales:{...bO.scales,y:{...bO.scales.y,min:40,max:100}}}});
+
+new Chart(document.getElementById('ch-full'),{type:'bar',data:{labels:MO12,datasets:[
+  {type:'bar',label:'Rainfall mm',data:proj.map(function(r){return r.pr;}),backgroundColor:'rgba(112,184,232,.35)',borderRadius:2,yAxisID:'y1'},
+  {type:'line',label:'Max Temp °C',data:proj.map(function(r){return r.tm;}),borderColor:'#e87070',fill:false,tension:.35,pointRadius:3,borderWidth:2,yAxisID:'y2'},
+  {type:'line',label:'Evap. Index',data:proj.map(function(r){return r.ev;}),borderColor:'#e8b84b',fill:false,tension:.35,pointRadius:0,borderWidth:2,borderDash:[5,3],yAxisID:'y3'}
+]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{color:'#6b7d62',boxWidth:10,font:{size:10}}},tooltip:{mode:'index',intersect:false,backgroundColor:'#1c2117',borderColor:'#2a3025',borderWidth:1,titleColor:'#dde8d4',bodyColor:'#6b7d62',padding:10}},scales:{x:{grid:{color:G}},y1:{type:'linear',position:'left',grid:{color:G},title:{display:true,text:'mm',color:'#6b7d62',font:{size:9}}},y2:{type:'linear',position:'right',grid:{display:false},min:25,max:42,title:{display:true,text:'°C',color:'#6b7d62',font:{size:9}}},y3:{type:'linear',position:'right',grid:{display:false},min:0,max:12,display:false}}}});
+
+// Calendar 12 months
+var calData12=[
+  {state:'optimal',icon:'☀️',score:'9.1',label:'Optimal — harvest',detail:'Peak dry season under El Niño. Temps 1.5°C above avg. Very low humidity. Strong trade winds. Optimal crystallization conditions. Max temp: ~34.1°C · Humidity: ~57% · Rainfall: ~3mm'},
+  {state:'optimal',icon:'☀️',score:'9.3',label:'Optimal — top priority',detail:'Best month of 2027. El Niño at or near peak. All conditions favorable. Intensive harvest operations. Max temp: ~34.4°C · Humidity: ~55% · Rainfall: ~7mm'},
+  {state:'optimal',icon:'☀️',score:'8.8',label:'Optimal — extreme heat',detail:'Late dry season, very hot under El Niño. Strong evaporation. Monitor worker health. Max temp: ~34.6°C · Humidity: ~62% · Rainfall: ~14mm'},
+  {state:'good',icon:'🌤',score:'7.2',label:'Good — monitor closely',detail:'Dry season end, transition approaching. Good conditions first 3 weeks. Harvest aggressively before May. Max temp: ~34.7°C · Humidity: ~63% · Rainfall: ~48mm'},
+  {state:'caution',icon:'⛅',score:'4.1',label:'Caution — first two weeks',detail:'Rainy season onset. El Niño may delay 1–2 weeks. Harvest any remaining salt in first 14 days. Max temp: ~33.3°C · Humidity: ~71% · Est. rainfall: ~102mm'},
+  {state:'none',icon:'🌧',score:'2.2',label:'No operations',detail:'Active rainy season. El Niño deficit but still 278mm expected. No production. Maintain ponds and drainage infrastructure. Max temp: ~30.4°C · Est. rainfall: ~278mm'},
+  {state:'caution',icon:'⛅',score:'5.5',label:'Dry spell — partial window',detail:'Mid-summer dry spell onset under El Niño. Prepare ponds by June 30 to maximize this window. Est. 6–8 productive days. Max temp: ~32.3°C · Est. rainfall: ~113mm'},
+  {state:'caution',icon:'⛅',score:'5.8',label:'Dry spell extended',detail:'If El Niño persists, dry spell extends into August. Second production window. Monitor weather daily for rain return. Max temp: ~31.8°C · Est. rainfall: ~142mm'},
+  {state:'risk',icon:'⛈',score:'2.0',label:'High rain risk',detail:'Highest risk month for extreme concentrated rainfall (>80mm/24h). Do not start concentration cycles. Daily monitoring mandatory. Max temp: ~31.0°C · Est. rainfall: ~213mm'},
+  {state:'risk',icon:'🌦',score:'2.8',label:'Risk — season end',detail:'Late rainy season. End may arrive early (2nd half Oct) under El Niño. Prepare for Nov cycle. Max temp: ~30.6°C · Est. rainfall: ~209mm'},
+  {state:'good',icon:'🌤',score:'7.8',label:'Good — start cycle',detail:'Early dry season transition. El Niño accelerating drying. Good conditions from mid-November. Start concentration cycle. Max temp: ~32.0°C · Humidity: ~70% · Est. rainfall: ~104mm'},
+  {state:'optimal',icon:'☀️',score:'8.9',label:'Optimal — intensive harvest',detail:'Full dry season. El Niño maturing. High temp, low humidity, strong winds. Intensive year-end production. Max temp: ~33.6°C · Humidity: ~61% · Est. rainfall: ~14mm'}
 ];
-
-Chart.defaults.color='#6b7d62';Chart.defaults.font.family="'DM Mono',monospace";Chart.defaults.font.size=10;
-const gridC='rgba(42,48,37,0.8)';
-const bO={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#1c2117',borderColor:'#2a3025',borderWidth:1,titleColor:'#dde8d4',bodyColor:'#6b7d62',padding:10,mode:'index',intersect:false}},scales:{x:{grid:{color:gridC},ticks:{maxRotation:0}},y:{grid:{color:gridC}}}};
-
-new Chart(document.getElementById('ch-evap-comp'),{type:'bar',data:{labels:MONTHS,datasets:[
-  {label:'Historical avg',data:proj.map(r=>r.evap_hist.toFixed(2)),backgroundColor:'rgba(112,184,232,.3)',borderColor:'#70b8e8',borderWidth:1,borderRadius:3},
-  {label:'El Niño 2027',data:proj.map(r=>r.evap.toFixed(2)),backgroundColor:proj.map(r=>r.evap>7?'rgba(82,201,160,.6)':r.evap>4?'rgba(232,184,75,.5)':'rgba(232,112,112,.4)'),borderWidth:0,borderRadius:3}
-]},options:{...bO,plugins:{...bO.plugins,legend:{display:true,labels:{color:'#6b7d62',boxWidth:10,font:{size:10}}}}}});
-
-new Chart(document.getElementById('ch-prec-enso'),{type:'bar',data:{labels:MONTHS,datasets:[
-  {label:'Historical avg',data:hist.prec,backgroundColor:'rgba(112,184,232,.35)',borderColor:'#70b8e8',borderWidth:1,borderRadius:2},
-  {label:'El Niño 2027',data:proj.map(r=>r.prec.toFixed(0)),backgroundColor:'rgba(232,184,75,.5)',borderColor:'#e8b84b',borderWidth:1,borderRadius:2},
-  {label:'Upper range',data:proj.map(r=>r.prec_hi.toFixed(0)),type:'line',borderColor:'rgba(82,201,160,.5)',borderDash:[3,3],backgroundColor:'transparent',pointRadius:0,borderWidth:1}
-]},options:{...bO,plugins:{...bO.plugins,legend:{display:true,labels:{color:'#6b7d62',boxWidth:10,font:{size:10}}}}}});
-
-new Chart(document.getElementById('ch-temp-enso'),{type:'line',data:{labels:MONTHS,datasets:[
-  {label:'Historical avg',data:hist.tmax,borderColor:'#70b8e8',fill:false,tension:.35,pointRadius:0,borderWidth:1.5,borderDash:[4,3]},
-  {label:'El Niño 2027',data:proj.map(r=>r.tmax.toFixed(1)),borderColor:'#e87070',fill:false,tension:.35,pointRadius:3,borderWidth:2}
-]},options:{...bO,plugins:{...bO.plugins,legend:{display:true,labels:{color:'#6b7d62',boxWidth:10,font:{size:10}}}}}});
-
-new Chart(document.getElementById('ch-hum-enso'),{type:'line',data:{labels:MONTHS,datasets:[
-  {label:'Historical avg',data:hist.rh,borderColor:'#70b8e8',fill:false,tension:.35,pointRadius:0,borderWidth:1.5,borderDash:[4,3]},
-  {label:'El Niño 2027',data:proj.map(r=>r.rh.toFixed(0)),borderColor:'#52c9a0',fill:true,backgroundColor:'rgba(82,201,160,.08)',tension:.35,pointRadius:0,borderWidth:2}
-]},options:{...bO,scales:{...bO.scales,y:{...bO.scales.y,min:40,max:100}},plugins:{...bO.plugins,legend:{display:true,labels:{color:'#6b7d62',boxWidth:10,font:{size:10}}}}}});
-
-new Chart(document.getElementById('ch-full'),{type:'bar',data:{labels:MONTHS,datasets:[
-  {type:'bar',label:'Rainfall mm',data:proj.map(r=>r.prec.toFixed(0)),backgroundColor:'rgba(112,184,232,.35)',borderRadius:2,yAxisID:'y1'},
-  {type:'line',label:'Max Temp °C',data:proj.map(r=>r.tmax.toFixed(1)),borderColor:'#e87070',fill:false,tension:.35,pointRadius:3,borderWidth:2,yAxisID:'y2'},
-  {type:'line',label:'Evap. Index',data:proj.map(r=>r.evap.toFixed(2)),borderColor:'#e8b84b',fill:false,tension:.35,pointRadius:0,borderWidth:2,borderDash:[5,3],yAxisID:'y3'}
-]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,labels:{color:'#6b7d62',boxWidth:10,font:{size:10}}},tooltip:{backgroundColor:'#1c2117',borderColor:'#2a3025',borderWidth:1,titleColor:'#dde8d4',bodyColor:'#6b7d62',padding:10,mode:'index',intersect:false}},scales:{x:{grid:{color:gridC}},y1:{type:'linear',position:'left',grid:{color:gridC},title:{display:true,text:'mm',color:'#6b7d62',font:{size:9}}},y2:{type:'linear',position:'right',grid:{display:false},min:28,max:42,title:{display:true,text:'°C',color:'#6b7d62',font:{size:9}}},y3:{type:'linear',position:'right',grid:{display:false},min:0,max:12,display:false}}}});
-
-// Calendar
-const cal=document.getElementById('cal12');
-cal12Data.forEach((m,i)=>{
-  const div=document.createElement('div');
-  div.className=`cal-month m-${m.state}`;
-  div.innerHTML=`<div class="cal-m-name">${MONTHS[i]}</div><div class="cal-m-icon">${m.icon}</div><div class="cal-m-score">${m.score}</div>`;
-  div.onclick=()=>showDetail(i);cal.appendChild(div);
+var stateC={optimal:'var(--teal)',good:'var(--green)',caution:'var(--amber)',risk:'var(--coral)',none:'var(--muted)'};
+var stateA={optimal:'teal',good:'green',caution:'amber',risk:'coral',none:'teal'};
+var cal=document.getElementById('cal12');
+calData12.forEach(function(m,i){
+  var d=document.createElement('div');
+  d.className='cal-month m-'+m.state;
+  d.innerHTML='<div class="cal-m-name">'+MO12[i]+'</div><div class="cal-m-icon">'+m.icon+'</div><div class="cal-m-score">'+m.score+'</div><div class="cal-m-label">'+m.label+'</div>';
+  d.onclick=(function(mi){return function(){
+    var md=document.getElementById('month-detail27');
+    md.innerHTML='<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><span style="font-size:20px">'+calData12[mi].icon+'</span><div><div style="font-family:var(--serif);font-size:15px;font-weight:500;color:'+stateC[calData12[mi].state]+'">'+MO12F[mi]+' 2027 — '+calData12[mi].label+'</div><div style="font-size:11px;color:var(--muted)">El Niño moderate-to-strong scenario</div></div></div><p style="font-size:12px;color:var(--muted);line-height:1.7">'+calData12[mi].detail+'</p>';
+    md.style.display='block';md.className='card '+stateA[calData12[mi].state];
+  };})(i);
+  cal.appendChild(d);
 });
-function showDetail(i){
-  const m=cal12Data[i],d=document.getElementById('month-detail');
-  const c={optimal:'var(--teal)',good:'var(--green)',caution:'var(--amber)',risk:'var(--coral)',stop:'var(--red)'};
-  const a={optimal:'teal',good:'green',caution:'amber',risk:'coral',stop:'red'};
-  d.innerHTML=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><span style="font-size:22px">${m.icon}</span><div><div style="font-family:var(--serif);font-size:16px;font-weight:500;color:${c[m.state]}">${MONTHS_FULL[i]} 2027</div><div style="font-size:11px;color:var(--muted)">Forecast under moderate-to-strong El Niño · Salinas Maya Natural, Escuintla GT</div></div></div><p style="font-size:12px;color:var(--muted);line-height:1.7">${m.note}</p>`;
-  d.style.display='block';d.className=`card accent-${a[m.state]}`;
-  d.scrollIntoView({behavior:'smooth',block:'nearest'});
-}
 
-// Timeline
-const hd=document.getElementById('ht-headers');
-MONTHS.forEach(m=>{const s=document.createElement('div');s.className='ht-mo';s.textContent=m;hd.appendChild(s);});
-const tl=document.getElementById('timeline12');
+// Timeline 12
+var tl=document.getElementById('timeline12');
 [
-  {label:'Concentration',color:'rgba(82,201,160,.7)',segs:[{s:0,w:4/12},{s:10/12,w:2/12}]},
-  {label:'Main harvest',color:'rgba(82,201,160,.5)',segs:[{s:1/12,w:3/12},{s:11/12,w:1/12}]},
-  {label:'Dry spell prod.',color:'rgba(232,184,75,.6)',segs:[{s:6.5/12,w:1.5/12}]},
-  {label:'No operations',color:'rgba(112,184,232,.3)',segs:[{s:5/12,w:1/12},{s:8/12,w:2.5/12}]},
-  {label:'Maintenance',color:'rgba(192,126,232,.4)',segs:[{s:4/12,w:2/12}]},
-  {label:'Rain monitoring',color:'rgba(232,80,80,.4)',segs:[{s:8/12,w:2/12}]}
-].forEach(a=>{
-  const row=document.createElement('div');row.className='ht-row';
-  const track=document.createElement('div');track.className='ht-track';
-  a.segs.forEach(seg=>{const s=document.createElement('div');s.className='ht-seg';s.style.left=(seg.s*100)+'%';s.style.width=(seg.w*100)+'%';s.style.background=a.color;track.appendChild(s);});
-  row.innerHTML=`<div class="ht-label">${a.label}</div>`;row.appendChild(track);tl.appendChild(row);
+  {label:'Concentration',color:'rgba(82,201,160,.6)',segs:[{s:0,w:4/12}]},
+  {label:'Main harvest',color:'rgba(82,201,160,.8)',segs:[{s:0,w:3/12},{s:10.5/12,w:1.5/12}]},
+  {label:'Dry spell prod.',color:'rgba(232,184,75,.6)',segs:[{s:6.25/12,w:1.75/12}]},
+  {label:'No operations',color:'rgba(80,80,80,.25)',segs:[{s:4.5/12,w:1.5/12},{s:8/12,w:2/12}]},
+  {label:'Rain monitoring',color:'rgba(232,80,80,.4)',segs:[{s:8/12,w:2/12}]},
+  {label:'Maintenance',color:'rgba(192,126,232,.35)',segs:[{s:4/12,w:2.5/12}]},
+  {label:'Nov cycle start',color:'rgba(126,212,94,.5)',segs:[{s:10/12,w:0.5/12}]}
+].forEach(function(a){
+  var row=document.createElement('div');row.className='ht-row';
+  var track=document.createElement('div');track.className='ht-track';
+  a.segs.forEach(function(seg){
+    var s=document.createElement('div');s.className='ht-seg';
+    s.style.left=(seg.s*100)+'%';s.style.width=(seg.w*100)+'%';s.style.background=a.color;
+    track.appendChild(s);
+  });
+  row.innerHTML='<div class="ht-label">'+a.label+'</div>';
+  row.appendChild(track);tl.appendChild(row);
 });
 
-// Risks
-const risks=[
-  {r:'Concentrated extreme rainfall',n:'<span class="pill pill-med">Moderate 30–40%</span>',v:'Sep–Oct',i:'Dissolves crystallization in open ponds. Potential partial production loss without fast drainage.',a:'Daily weather monitoring. Fast-drainage system active. Harvest ahead of any >50mm/24h forecast.'},
-  {r:'Extended dry spell (opportunity)',n:'<span class="pill pill-low">High 70–80%</span>',v:'Jul–Aug',i:'Rain pause of 8–10 weeks instead of 4–6. Enables an additional concentration cycle.',a:'Plan extra production cycle Jul 15–Aug 25 (est.). Prepare additional ponds by end of June.'},
-  {r:'Temperature >38°C',n:'<span class="pill pill-med">Moderate 40–50%</span>',v:'Mar–Apr',i:'Worker heat stress. Rapid evaporation may form crust prematurely.',a:'Morning shifts (5–11am). Monitor crystallization twice daily during heat peaks.'},
-  {r:'Delayed rain onset',n:'<span class="pill pill-enso">El Niño 55–65%</span>',v:'May',i:'Dry season may extend 2–3 extra weeks. Positive: additional production in May.',a:'Do not rush to close the dry cycle. Take advantage of the extension. Prepare additional storage.'},
-  {r:'Tropical cyclone (Pacific)',n:'<span class="pill pill-low">Low 10–15%</span>',v:'Jun–Oct',i:'El Niño reduces cyclone formation in the Eastern Pacific. Lower risk than neutral or La Niña years.',a:'Maintain standard CONRED emergency protocol. No special action required this year.'},
-  {r:'Coastal flooding',n:'<span class="pill pill-low">Low–moderate 15–25%</span>',v:'Sep–Oct',i:'Combination of intense rain + high tide + wave surge. Risk of uncontrolled saltwater ingress.',a:'Inspect dikes and berms before season. Monitor tide tables in combination with rain forecasts.'},
-  {r:'Post-El Niño drought (late year)',n:'<span class="pill pill-med">Moderate 25%</span>',v:'Nov–Dec',i:'If El Niño intensifies in Q4, dry season may start in October, creating an exceptionally dry Nov.',a:'Early harvest opportunity. Monitor pond water levels in October.'}
+// Risk table
+var risks=[
+  {r:'Concentrated extreme rainfall',n:'<span class="pill pill-high">High 70–80%</span>',v:'Sep–Oct',i:'Under El Niño events >80mm/24h historically increase. Can dissolve crystallization in open ponds.',a:'Do not start long cycles in September. INSIVUMEH app + local pluviometer. Rapid drainage plan.'},
+  {r:'Extended dry spell (upside)',n:'<span class="pill pill-med">Moderate 40–50%</span>',v:'Jul–Aug',i:'Dry spell extends 8–10+ weeks, creating a second full production cycle.',a:'Prepare ponds by June 30. Plan a complete Jul–Aug concentration cycle.'},
+  {r:'Irregular 2027 rain onset',n:'<span class="pill pill-enso">El Niño 55–65%</span>',v:'Apr–May',i:'Rain onset delayed 2–3 weeks, extending the dry season.',a:'Monitor closely May 1–15. Harvest all ready salt before first confirmed rains.'},
+  {r:'Extreme heat >38°C',n:'<span class="pill pill-med">Moderate 30–40%</span>',v:'Feb–Mar',i:'El Niño can produce multi-day heat events on the Pacific coast.',a:'Morning work shifts. Worker hydration protocols. Monitor brine temp and crystallization rate.'},
+  {r:'Shorter dry spell (downside)',n:'<span class="pill pill-low">Low 15–25%</span>',v:'Jul–Aug',i:'If El Niño decays faster than expected, dry spell may be 4–6 weeks only.',a:'Monitor ENSO index monthly from April. Adjust Jul–Aug cycle length based on forecast updates.'},
+  {r:'Late rainy season end',n:'<span class="pill pill-low">Low 15–20%</span>',v:'Oct–Nov',i:'If La Niña onset begins in H2 2027, rainy season could extend to November.',a:'Watch for La Niña signals from June onwards. Adjust Nov cycle start date accordingly.'},
+  {r:'Tropical cyclone',n:'<span class="pill pill-low">Low 10–15%</span>',v:'Jun–Oct',i:'Reduced under El Niño. Eastern Pacific cyclone activity historically lower.',a:'Standard CONRED emergency protocol. Keep drainage channels clear year-round.'}
 ];
-document.getElementById('risk-tbody').innerHTML=risks.map(r=>`<tr><td style="font-weight:500;color:var(--text)">${r.r}</td><td>${r.n}</td><td style="color:var(--amber)">${r.v}</td><td style="color:var(--muted)">${r.i}</td><td style="color:var(--teal)">${r.a}</td></tr>`).join('');
+document.getElementById('risk-tbody').innerHTML=risks.map(function(r){
+  return '<tr><td>'+r.r+'</td><td>'+r.n+'</td><td style="color:var(--amber)">'+r.v+'</td><td>'+r.i+'</td><td style="color:var(--teal)">'+r.a+'</td></tr>';
+}).join('');
 
-// Projection table
-const statuses=['Optimal — harvest','Optimal — top priority','Optimal — extreme heat','Good — monitor closely','Caution — first two weeks','No operations','Dry spell — partial window','Dry spell extended','High rain risk','Risk — season end','Good — start cycle','Optimal — intensive harvest'];
-const sC=['pill-low','pill-low','pill-low','pill-low','pill-med','pill-high','pill-med','pill-med','pill-high','pill-high','pill-low','pill-low'];
-document.getElementById('proj-tbody').innerHTML=proj.map((r,i)=>`<tr><td style="color:var(--text)">${MONTHS_FULL[i]}</td><td style="color:var(--coral)">${r.tmax.toFixed(1)}</td><td>${r.tmin.toFixed(1)}</td><td>${r.rh.toFixed(0)}</td><td style="color:${r.prec>200?'var(--coral)':r.prec<30?'var(--teal)':'var(--muted)'}">${r.prec.toFixed(0)}</td><td>${r.wind.toFixed(1)}</td><td style="color:${r.evap>7?'var(--teal)':r.evap>4?'var(--amber)':'var(--coral)'}">${r.evap.toFixed(2)}</td><td><span class="pill ${sC[i]}">${statuses[i]}</span></td></tr>`).join('');
+// Monthly table
+var statuses=['Optimal — harvest','Optimal — top priority','Optimal — extreme heat','Good — monitor closely','Caution — first two weeks','No operations','Dry spell — partial window','Dry spell extended','High rain risk','Risk — season end','Good — start cycle','Optimal — intensive harvest'];
+var statusC=['pill-opt','pill-opt','pill-opt','pill-low','pill-med','pill-high','pill-med','pill-med','pill-high','pill-high','pill-low','pill-opt'];
+document.getElementById('proj-tbody').innerHTML=proj.map(function(r,i){
+  return '<tr><td>'+MO12F[i]+'</td><td style="color:var(--coral)">'+r.tm+'</td><td>'+r.tn+'</td><td>'+r.rh+'</td><td style="color:'+(r.pr>200?'var(--coral)':r.pr<30?'var(--teal)':'var(--muted)')+'">'+r.pr+'</td><td>'+r.wi+'</td><td style="color:'+(r.ev>7?'var(--teal)':r.ev>3.5?'var(--amber)':'var(--coral)')+'">'+r.ev+'</td><td><span class="pill '+statusC[i]+'">'+statuses[i]+'</span></td></tr>';
+}).join('');
 
-function showTab(id,el){document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});document.getElementById('tab-'+id).classList.add('active');el.classList.add('active');}
-
+function switchTab(id,el){
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});
+  document.getElementById('tab-'+id).classList.add('active');
+  el.classList.add('active');
+}
 </script>
 </body>
 </html>
