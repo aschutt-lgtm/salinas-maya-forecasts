@@ -114,11 +114,11 @@ header{padding:28px 36px 22px;border-bottom:1px solid var(--border);display:flex
   </div>
 </header>
 <div class="tabs">
-  <button class="tab active" onclick="showTab('overview')" id="t-tab1">Resumen Ejecutivo</button>
-  <button class="tab" onclick="showTab('calendar')" id="t-tab2">Calendario de Cosecha</button>
-  <button class="tab" onclick="showTab('enso')" id="t-tab3">Análisis El Niño</button>
-  <button class="tab" onclick="showTab('risks')" id="t-tab4">Matriz de Riesgos</button>
-  <button class="tab" onclick="showTab('monthly')" id="t-tab5">Pronóstico Mensual</button>
+  <button class="tab active" onclick=\"showTab('overview',this)\" id="t-tab1">Resumen Ejecutivo</button>
+  <button class="tab" onclick=\"showTab('calendar',this)\" id="t-tab2">Calendario de Cosecha</button>
+  <button class="tab" onclick=\"showTab('enso',this)\" id="t-tab3">Análisis El Niño</button>
+  <button class="tab" onclick=\"showTab('risks',this)\" id="t-tab4">Matriz de Riesgos</button>
+  <button class="tab" onclick=\"showTab('monthly',this)\" id="t-tab5">Pronóstico Mensual</button>
 </div>
 
 <!-- TAB 1: EXECUTIVE SUMMARY -->
@@ -430,7 +430,7 @@ const statuses=['Óptimo — cosechar','Óptimo — máxima prioridad','Óptimo 
 const sC=['pill-low','pill-low','pill-low','pill-low','pill-med','pill-high','pill-med','pill-med','pill-high','pill-high','pill-low','pill-low'];
 document.getElementById('proj-tbody').innerHTML=proj.map((r,i)=>`<tr><td style="color:var(--text)">${MONTHS_FULL[i]}</td><td style="color:var(--coral)">${r.tmax.toFixed(1)}</td><td>${r.tmin.toFixed(1)}</td><td>${r.rh.toFixed(0)}</td><td style="color:${r.prec>200?'var(--coral)':r.prec<30?'var(--teal)':'var(--muted)'}">${r.prec.toFixed(0)}</td><td>${r.wind.toFixed(1)}</td><td style="color:${r.evap>7?'var(--teal)':r.evap>4?'var(--amber)':'var(--coral)'}">${r.evap.toFixed(2)}</td><td><span class="pill ${sC[i]}">${statuses[i]}</span></td></tr>`).join('');
 
-function showTab(id){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));document.getElementById('tab-'+id).classList.add('active');event.target.classList.add('active');}
+function showTab(id,el){document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});document.getElementById('tab-'+id).classList.add('active');el.classList.add('active');}
 
 // ── LANGUAGE SWITCH ──────────────────────────────────────────
 var LANG='en';
