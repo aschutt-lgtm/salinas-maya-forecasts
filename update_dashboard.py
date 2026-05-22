@@ -316,7 +316,7 @@ footer{padding:24px 32px 0;font-size:11px;color:var(--muted);border-top:1px soli
     </div>
   </div>
   <div class="h-right">
-    <div class="tag tag-coords">13.8262°N, 90.2971°W · Escuintla, GT</div>
+    <div class="tag tag-coords">13.8262°N, 90.2971°W · Chiquimulilla, Santa Rosa, GT</div>
 """)
     parts.append('    <div class="tag tag-moon">%s %s &middot; %s%% &middot; %sd to syzygy</div>\n' % (memoji, mname, mill, md2s))
     parts.append('    <div class="tag tag-update">&#8635; %s</div>\n' % gt)
@@ -463,7 +463,7 @@ footer{padding:24px 32px 0;font-size:11px;color:var(--muted);border-top:1px soli
     parts.append('<footer>\n')
     parts.append('  <span>Climate: Open-Meteo ERA5-Land &middot; ECMWF</span>\n')
     parts.append('  <span>Tides: WorldTides API &middot; MSL datum</span>\n')
-    parts.append('  <span>13.8262&deg;N, 90.2971&deg;W &middot; Escuintla, Guatemala</span>\n')
+    parts.append('  <span>13.8262&deg;N, 90.2971&deg;W &middot; Chiquimulilla, Santa Rosa, Guatemala</span>\n')
     parts.append('  <span>Auto-updated daily 06:00 AM GT &middot; Last run: %s</span>\n' % gt)
     parts.append('</footer>\n')
 
