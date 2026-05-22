@@ -476,7 +476,7 @@ function initTides(){
     {label:'Crítico',data:Array(TH.length).fill(W3),borderColor:'rgba(232,80,80,.6)',borderDash:[4,4],backgroundColor:'transparent',fill:false,pointRadius:0,borderWidth:1.5},
     {label:'Alerta', data:Array(TH.length).fill(W1),borderColor:'rgba(232,184,75,.4)',borderDash:[4,4],backgroundColor:'transparent',fill:false,pointRadius:0,borderWidth:1}
   ]},options:{...bO,plugins:{...bO.plugins,legend:{display:true,labels:{color:'#6b7d62',boxWidth:24,font:{size:11}}}},
-    scales:{...bO.scales,y:{...bO.scales.y,min:-0.5,max:Math.ceil((Math.max.apply(null,TV.concat([W3]))+0.4)*2)/2,title:{display:true,text:'metros (MSL)',color:'#6b7d62',font:{size:10}}}}}});
+    scales:{...bO.scales,y:{...bO.scales.y,min:Math.floor((Math.min.apply(null,TV)-0.3)*2)/2,max:Math.ceil((Math.max.apply(null,TV.concat([W3]))+0.3)*2)/2,title:{display:true,text:'metros (MSL)',color:'#6b7d62',font:{size:10}}}}}});
 }
 
 function initRisk(){
