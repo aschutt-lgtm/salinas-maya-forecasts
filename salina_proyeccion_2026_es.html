@@ -110,8 +110,6 @@ header{padding:24px 36px 20px;border-bottom:1px solid var(--border);display:flex
 .cd-num{font-family:var(--serif);font-size:32px;font-weight:500;}
 .cd-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:4px;}
 #month-detail{display:none;margin-top:16px;}
-.lang-btn{font-family:var(--mono);font-size:11px;font-weight:600;padding:4px 14px;border-radius:6px;border:1px solid var(--amber-d);background:transparent;color:var(--amber);cursor:pointer;letter-spacing:.5px;}
-.lang-btn:hover{background:var(--amber-d);}
 </style>
 </head>
 <body>
@@ -122,7 +120,6 @@ header{padding:24px 36px 20px;border-bottom:1px solid var(--border);display:flex
   </div>
   <div class="h-right">
     <div class="enso-badge"><span class="enso-dot"></span>Alerta El Niño Activa · NOAA 14 may 2026 · 92% prob. Jun–Ago</div>
-    <button class="lang-btn" id="lang-btn" onclick="toggleLang()">ES</button>
     <div class="source-tag">NOAA CPC · INSIVUMEH · Open-Meteo ERA5 · Actualizado 20 mayo 2026</div>
   </div>
 </header>
@@ -434,70 +431,6 @@ document.getElementById('proj-tbody').innerHTML=proj8.map((r,i)=>`<tr><td style=
 
 function showTab(id,el){document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});document.getElementById('tab-'+id).classList.add('active');el.classList.add('active');}
 
-// ── LANGUAGE SWITCH ──────────────────────────────────────────
-var LANG='en';
-var TX={en:{
-    'tab1':'Right Now',
-    'tab2':'May–Dec Calendar',
-    'tab3':'El Niño Impact',
-    'tab4':'Risk Matrix',
-    'tab5':'Monthly Forecast',
-    'sec1':'Situación hoy — 20 de mayo 2026',
-    'sec2':'Ventanas críticas próximas',
-    'sec3':'Resumen mayo–diciembre 2026',
-    'sec4':'Índice de evaporación proyectado · Mayo–Diciembre 2026',
-    'sec5':'Calendario operacional mayo–diciembre 2026',
-    'sec6':'Línea de tiempo · Mayo–Dic 2026',
-    'sec7':'El Niño 2026 — cronología e impacto en la salina',
-    'sec8':'Projected Niño-3.4 index · May–Diciembre 2026',
-    'sec9':'Precipitation projection vs. historical',
-    'sec10':'Temperature projection vs. historical',
-    'sec11':'Matriz de riesgos · Mayo–Diciembre 2026',
-    'sec12':'Pronóstico mensual detallado · Mayo–Diciembre 2026'
-  },es:{
-    'tab1':'Ahora Mismo',
-    'tab2':'Calendario May–Dic',
-    'tab3':'Impacto El Niño',
-    'tab4':'Matriz de Riesgos',
-    'tab5':'Pronóstico Mensual',
-    'sec1':'Situación hoy — 20 de mayo 2026',
-    'sec2':'Ventanas críticas próximas',
-    'sec3':'Resumen mayo–diciembre 2026',
-    'sec4':'Índice de evaporación proyectado · Mayo–Diciembre 2026',
-    'sec5':'Calendario operacional mayo–diciembre 2026',
-    'sec6':'Línea de tiempo · Mayo–Dic 2026',
-    'sec7':'El Niño 2026 — cronología e impacto en la salina',
-    'sec8':'Índice Niño-3.4 proyectado · Mayo–Diciembre 2026',
-    'sec9':'Precipitación proyectada vs. histórico',
-    'sec10':'Temperatura proyectada vs. histórico',
-    'sec11':'Matriz de riesgos · Mayo–Diciembre 2026',
-    'sec12':'Pronóstico mensual detallado · Mayo–Diciembre 2026'
-  }};
-var TMAP={'t-tab1':'tab1',
-  't-tab2':'tab2',
-  't-tab3':'tab3',
-  't-tab4':'tab4',
-  't-tab5':'tab5',
-  '<div class="sec-title" id="t-sec1">Situation today':'<div class="sec-title" id="sec1">Situation today',
-  '<div class="sec-title" id="t-sec2">Ventanas críticas próximas':'<div class="sec-title" id="sec2">Ventanas críticas próximas',
-  '<div class="sec-title" id="t-sec3">Resumen mayo–diciembre 2026':'<div class="sec-title" id="sec3">Resumen mayo–diciembre 2026',
-  '<div class="sec-title" id="t-sec4">Evaporation index forecast':'<div class="sec-title" id="sec4">Evaporation index forecast',
-  '<div class="sec-title" id="t-sec5">Calendario operacional mayo–diciembre 2026':'<div class="sec-title" id="sec5">Calendario operacional mayo–diciembre 2026',
-  '<div class="sec-title" id="t-sec6">Activity timeline':'<div class="sec-title" id="sec6">Activity timeline',
-  '<div class="sec-title" id="t-sec7">El Niño 2026 — timeline and impact':'<div class="sec-title" id="sec7">El Niño 2026 — timeline and impact',
-  '<div class="sec-title" id="t-sec8">Projected Niño-3.4 index':'<div class="sec-title" id="sec8">Projected Niño-3.4 index',
-  '<div class="sec-title" id="t-sec9">Precipitation projection vs. historical':'<div class="sec-title" id="sec9">Precipitation projection vs. historical',
-  '<div class="sec-title" id="t-sec10">Temperature projection vs. historical':'<div class="sec-title" id="sec10">Temperature projection vs. historical',
-  '<div class="sec-title" id="t-sec11">Risk matrix':'<div class="sec-title" id="sec11">Risk matrix',
-  '<div class="sec-title" id="t-sec12">Monthly detailed forecast':'<div class="sec-title" id="sec12">Monthly detailed forecast'};
-function toggleLang(){
-  LANG=LANG==='en'?'es':'en';
-  document.getElementById('lang-btn').textContent=LANG==='en'?'ES':'EN';
-  Object.keys(TMAP).forEach(function(id){
-    var el=document.getElementById(id);
-    if(el)el.textContent=TX[LANG][TMAP[id]];
-  });
-}
 </script>
 </body>
 </html>
