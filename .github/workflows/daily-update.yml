@@ -20,11 +20,23 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Run English dashboard updater
-        run: python update_dashboard.py
+      - name: Run English dashboard updater (with retry)
+        run: |
+          for i in 1 2 3; do
+            echo "Attempt $i..."
+            python update_dashboard.py && break
+            echo "Failed, waiting 30s..."
+            sleep 30
+          done
 
-      - name: Run Spanish dashboard updater
-        run: python update_dashboard_es.py
+      - name: Run Spanish dashboard updater (with retry)
+        run: |
+          for i in 1 2 3; do
+            echo "Attempt $i..."
+            python update_dashboard_es.py && break
+            echo "Failed, waiting 30s..."
+            sleep 30
+          done
 
       - name: Commit and push updated dashboards
         run: |
