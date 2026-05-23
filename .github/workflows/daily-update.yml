@@ -22,20 +22,28 @@ jobs:
 
       - name: Run English dashboard updater (with retry)
         run: |
-          for i in 1 2 3; do
+          for i in 1 2 3 4 5; do
             echo "Attempt $i..."
-            python update_dashboard.py && break
-            echo "Failed, waiting 30s..."
-            sleep 30
+            python update_dashboard.py && { echo "Success on attempt $i"; break; }
+            if [ $i -eq 5 ]; then
+              echo "All attempts failed"
+              exit 1
+            fi
+            echo "Failed, waiting 60s..."
+            sleep 60
           done
 
       - name: Run Spanish dashboard updater (with retry)
         run: |
-          for i in 1 2 3; do
+          for i in 1 2 3 4 5; do
             echo "Attempt $i..."
-            python update_dashboard_es.py && break
-            echo "Failed, waiting 30s..."
-            sleep 30
+            python update_dashboard_es.py && { echo "Success on attempt $i"; break; }
+            if [ $i -eq 5 ]; then
+              echo "All attempts failed"
+              exit 1
+            fi
+            echo "Failed, waiting 60s..."
+            sleep 60
           done
 
       - name: Commit and push updated dashboards
