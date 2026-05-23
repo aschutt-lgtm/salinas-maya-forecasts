@@ -35,7 +35,7 @@ def climate():
     return d, sf, ef
 
 def forecast():
-    url = f"https://api.open-meteo.com/v1/forecast?latitude={LAT}&longitude={LON}&daily=precipitation_sum,wind_speed_10m_max,wind_direction_10m_dominant&forecast_days=10&timezone={TZ}&wind_speed_unit=kmh"
+    url = f"https://api.open-meteo.com/v1/forecast?latitude={LAT}&longitude={LON}&daily=precipitation_sum,wind_speed_10m_max,wind_direction_10m_dominant,temperature_2m_max,temperature_2m_min,relative_humidity_2m_max,relative_humidity_2m_min&forecast_days=10&past_days=60&timezone={TZ}&wind_speed_unit=kmh"
     print("[Pronóstico] descargando...")
     return get(url)["daily"]
 
@@ -102,6 +102,34 @@ def calc_kpis(monthly):
             "avg_rh":av(rh),"avg_rain_yr":round((av(pr) or 0)*12,0),
             "avg_rain_mo":av(pr),"avg_wind":av(wi),"avg_evap":av(ev)}
 
+def harvest_score(tmax, rh, wind, rain):
+    """Puntuación 0-10: condiciones para cosecha de sal"""
+    s = 0.0
+    if tmax is None: s += 5
+    elif tmax >= 34: s += 10
+    elif tmax >= 32: s += 8
+    elif tmax >= 30: s += 6
+    elif tmax >= 28: s += 4
+    else: s += 2
+    if rh is None: s += 5
+    elif rh <= 60: s += 10
+    elif rh <= 70: s += 8
+    elif rh <= 78: s += 5
+    elif rh <= 85: s += 3
+    else: s += 1
+    if wind is None: s += 5
+    elif 8 <= wind <= 15: s += 10
+    elif 5 <= wind <= 20: s += 7
+    elif wind > 20: s += 5
+    else: s += 3
+    if rain is None: s += 5
+    elif rain == 0: s += 10
+    elif rain < 5: s += 7
+    elif rain < 20: s += 3
+    else: s += 0
+    return round(s / 4, 1)
+
+
 def calc_risks(tide_data, fc, mn):
     _,_,_,d2s,syzy = mn
     hi = {}
@@ -112,11 +140,17 @@ def calc_risks(tide_data, fc, mn):
     fp = {fc["time"][i]:(fc["precipitation_sum"][i] or 0) for i in range(len(fc["time"]))}
     fw = {fc["time"][i]:(fc["wind_speed_10m_max"][i] or 0) for i in range(len(fc["time"]))}
     fd = {fc["time"][i]:(fc["wind_direction_10m_dominant"][i] or 0) for i in range(len(fc["time"]))}
+    ftmax = {fc["time"][i]:fc["temperature_2m_max"][i] for i in range(len(fc["time"]))}
+    frhmax = {fc["time"][i]:fc["relative_humidity_2m_max"][i] for i in range(len(fc["time"]))}
+    frhmin = {fc["time"][i]:fc["relative_humidity_2m_min"][i] for i in range(len(fc["time"]))}
     out = []
     today = datetime.now(timezone.utc).date()
     for i in range(DAYS):
         d = today+timedelta(days=i); ds = d.strftime("%Y-%m-%d")
         tide=hi.get(ds,1.2); rain=fp.get(ds,0); wind=fw.get(ds,0); wdir=fd.get(ds,0)
+        tmax=ftmax.get(ds); rhmax=frhmax.get(ds); rhmin=frhmin.get(ds)
+        rh = round((rhmax+rhmin)/2) if (rhmax and rhmin) else rhmax
+        hs = harvest_score(tmax, rh, wind, rain)
         south = 135<=wdir<=225; sc=0; fx=[]
         if tide>=W3: sc+=3; fx.append("Marea extrema %.2fm" % tide)
         elif tide>=W2: sc+=2; fx.append("Marea alta %.2fm" % tide)
@@ -137,7 +171,9 @@ def calc_risks(tide_data, fc, mn):
         wd = dias[d.weekday()]
         out.append({"date":ds,"dl":dl,"wd":wd,
                     "tide":round(tide,2),"rain":round(rain,1),"wind":round(wind,1),
-                    "south":south,"score":sc,"level":lv,"color":co,"label":lb,"fx":fx})
+                    "tmax":round(tmax,1) if tmax else None,"rh":rh,
+                    "south":south,"score":sc,"level":lv,"color":co,"label":lb,"fx":fx,
+                    "hs":hs})
     return out
 
 def build(monthly, sa, kp, rs, mn, tide_data, s_date, e_date):
@@ -321,6 +357,9 @@ footer{padding:24px 32px 0;font-size:11px;color:var(--muted);border-top:1px soli
     parts.append('  <div class="ab-main">\n')
     parts.append('    <div class="ab-title" style="color:%s">Riesgo de inundación hoy: %s</div>\n' % (bco, tr["level"]))
     parts.append('    <div class="ab-sub">Marea máx: %sm &middot; Lluvia: %smm &middot; Viento: %s km/h &middot; %s %s</div>\n' % (tr["tide"], tr["rain"], tr["wind"], memoji, mname))
+    hs_color = "#52c9a0" if tr["hs"] >= 7 else "#e8b84b" if tr["hs"] >= 5 else "#e87070"
+    hs_label = "Óptimo" if tr["hs"] >= 7 else "Bueno" if tr["hs"] >= 5 else "Bajo"
+    parts.append('    <div class="ab-factors"><span class="ab-factor">🌾 Condiciones de cosecha: <strong style="color:%s">%s (%s/10)</strong></span></div>\n' % (hs_color, hs_label, tr["hs"]))
     parts.append('    <div class="ab-factors">%s</div>\n' % tfx)
     parts.append("""  </div>
 </div>
@@ -329,6 +368,8 @@ footer{padding:24px 32px 0;font-size:11px;color:var(--muted);border-top:1px soli
     parts.append("""<div class="tabs">
   <button class="tab active" onclick="switchTab('mareas',this)">🌊 Pronóstico Mareas</button>
   <button class="tab" onclick="switchTab('riesgo',this)">⚠ Índice de Riesgo</button>
+  <button class="tab" onclick="switchTab('lluvia',this)">🌧 Pronóstico Lluvia</button>
+  <button class="tab" onclick="switchTab('campo',this)">🌡 Condiciones de Campo</button>
   <button class="tab" onclick="switchTab('clima',this)">📊 Registro Climático</button>
   <button class="tab" onclick="switchTab('estacional',this)">📅 Patrón Estacional</button>
 </div>
@@ -458,6 +499,7 @@ footer{padding:24px 32px 0;font-size:11px;color:var(--muted);border-top:1px soli
 
     parts.append('<script>\n')
     parts.append(js_data + "\n")
+    parts.append(js_field + "\n")
     parts.append("""
 var G='rgba(42,48,37,0.7)';
 Chart.defaults.color='#6b7d62';
@@ -512,6 +554,131 @@ function initClimate(){
   ]},options:{...bO}});
 }
 
+function initRain(){
+  var labels = FC.map(function(r){return r.past ? r.dl+' ★' : r.today ? r.dl+' ◆' : r.dl;});
+  var prec   = FC.map(function(r){return r.prec;});
+  var colors = FC.map(function(r){
+    if(r.past) return 'rgba(107,125,98,.4)';
+    if(r.prec>=20) return 'rgba(232,80,80,.7)';
+    if(r.prec>=10) return 'rgba(232,184,75,.7)';
+    return 'rgba(112,184,232,.6)';
+  });
+  var avgLine = FC.map(function(r){
+    var m = parseInt(r.ds.slice(5,7))-1;
+    return RAIN_AVG[m] ? Math.round(RAIN_AVG[m]/30*10)/10 : null;
+  });
+  mk('chart-rain',{type:'bar',data:{labels:labels,datasets:[
+    {type:'bar',label:'Pronóstico mm/día',data:prec,backgroundColor:colors,borderWidth:0,borderRadius:3},
+    {type:'line',label:'Prom. histórico (mm/día)',data:avgLine,borderColor:'rgba(232,184,75,.6)',borderDash:[4,3],fill:false,pointRadius:0,borderWidth:1.5},
+    {type:'line',label:'Umbral riesgo (20mm)',data:Array(FC.length).fill(20),borderColor:'rgba(232,80,80,.35)',borderDash:[4,4],fill:false,pointRadius:0,borderWidth:1}
+  ]},options:{...bO,plugins:{...bO.plugins,legend:{display:true,labels:{color:'#6b7d62',boxWidth:10,font:{size:10}}}},
+    scales:{...bO.scales,y:{...bO.scales.y,min:0,title:{display:true,text:'mm',color:'#6b7d62',font:{size:10}}}}}});
+  var cards = document.getElementById('rain-cards');
+  cards.innerHTML = '';
+  FC.filter(function(r){return !r.past;}).forEach(function(r){
+    var c=r.prec>=20?'var(--red)':r.prec>=10?'var(--amber)':'var(--teal)';
+    var d=document.createElement('div');
+    d.style.cssText='background:var(--bg2);border:1px solid var(--border);border-top:2px solid '+c+';border-radius:8px;padding:10px 12px;text-align:center';
+    d.innerHTML='<div style="font-size:11px;color:var(--muted)">'+r.dl+(r.today?' <b style="color:var(--amber)">HOY</b>':'')+'</div>'
+      +'<div style="font-family:var(--serif);font-size:22px;color:'+c+'">'+r.prec+'<span style="font-size:11px;color:var(--muted)">mm</span></div>'
+      +'<div style="font-size:10px;color:var(--muted)">'+r.wd+'</div>';
+    cards.appendChild(d);
+  });
+}
+
+function initField(){
+  var labels = FC.map(function(r){return r.past ? r.dl+' ★' : r.today ? r.dl+' ◆' : r.dl;});
+  var scores = FC.map(function(r){return r.hs;});
+  var scoreColors = scores.map(function(s){return s>=7?'rgba(82,201,160,.7)':s>=5?'rgba(232,184,75,.7)':'rgba(232,112,112,.7)';});
+  var tides_fc = FC.map(function(r){return r.tide||null;});
+  mk('chart-harvest',{type:'bar',data:{labels:labels,datasets:[
+    {type:'bar',label:'Índice cosecha',data:scores,backgroundColor:scoreColors,borderWidth:0,borderRadius:4,yAxisID:'y1'},
+    {type:'line',label:'Óptimo (7)',data:Array(FC.length).fill(7),borderColor:'rgba(82,201,160,.3)',borderDash:[4,3],fill:false,pointRadius:0,borderWidth:1,yAxisID:'y1'},
+    {type:'line',label:'Marea máx (m)',data:tides_fc,borderColor:'#70b8e8',backgroundColor:'rgba(112,184,232,.08)',fill:true,tension:.4,pointRadius:2,borderWidth:1.5,yAxisID:'y2',spanGaps:true}
+  ]},options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:true,labels:{color:'#6b7d62',boxWidth:10,font:{size:10}}},tooltip:{mode:'index',intersect:false,backgroundColor:'#1c2117',borderColor:'#2a3025',borderWidth:1,titleColor:'#dde8d4',bodyColor:'#6b7d62',padding:10}},
+    scales:{x:{grid:{color:G}},
+      y1:{type:'linear',position:'left',grid:{color:G},min:0,max:10,ticks:{stepSize:2},title:{display:true,text:'Índice cosecha',color:'#6b7d62',font:{size:9}}},
+      y2:{type:'linear',position:'right',grid:{display:false},min:0,max:3.5,title:{display:true,text:'Marea (m)',color:'#70b8e8',font:{size:9}},ticks:{color:'#70b8e8'}}}}});
+  document.getElementById('field-tbody').innerHTML = FC.map(function(r){
+    var sc = r.hs>=7?'var(--teal)':r.hs>=5?'var(--amber)':'var(--red)';
+    var bg = r.today?'background:rgba(232,184,75,.06)':'';
+    var lbl = r.today?' <span style="font-size:9px;background:rgba(232,184,75,.25);color:var(--amber);padding:1px 5px;border-radius:3px">HOY</span>':r.past?' <span style="font-size:9px;color:var(--muted)">★</span>':'';
+    return '<tr style="'+bg+'">'
+      +'<td style="padding:7px 10px;border-bottom:1px solid rgba(42,48,37,.5);color:var(--muted)">'+r.dl+lbl+'</td>'
+      +'<td style="text-align:right;padding:7px 10px;border-bottom:1px solid rgba(42,48,37,.5);color:'+(r.tmax>=34?'var(--coral)':'var(--text)')+'">'+( r.tmax||'—')+'</td>'
+      +'<td style="text-align:right;padding:7px 10px;border-bottom:1px solid rgba(42,48,37,.5);color:'+(r.rh>80?'var(--blue)':r.rh<60?'var(--amber)':'var(--text)')+'">'+( r.rh||'—')+'</td>'
+      +'<td style="text-align:right;padding:7px 10px;border-bottom:1px solid rgba(42,48,37,.5);color:var(--purple)">'+( r.wind||'—')+'</td>'
+      +'<td style="text-align:right;padding:7px 10px;border-bottom:1px solid rgba(42,48,37,.5);color:'+(r.prec>=20?'var(--red)':r.prec>0?'var(--blue)':'var(--muted)')+'">'+r.prec+'</td>'
+      +'<td style="text-align:center;padding:7px 10px;border-bottom:1px solid rgba(42,48,37,.5)"><span style="font-family:var(--serif);font-size:16px;color:'+sc+'">'+r.hs+'</span></td>'
+      +'</tr>';
+  }).join('');
+}
+
+
+function initRain(){
+  var labels = FC.map(function(r){return r.past ? r.dl+' ★' : r.today ? r.dl+' ◆' : r.dl;});
+  var prec = FC.map(function(r){return r.prec;});
+  var colors = FC.map(function(r){
+    if(r.past) return 'rgba(107,125,98,.4)';
+    if(r.prec>=20) return 'rgba(232,80,80,.7)';
+    if(r.prec>=10) return 'rgba(232,184,75,.7)';
+    return 'rgba(112,184,232,.6)';
+  });
+  var avgLine = FC.map(function(r){
+    var m=parseInt(r.ds.slice(5,7))-1;
+    return RAIN_AVG[m]?Math.round(RAIN_AVG[m]/30*10)/10:null;
+  });
+  mk('chart-rain',{type:'bar',data:{labels:labels,datasets:[
+    {type:'bar',label:'Pronóstico mm/día',data:prec,backgroundColor:colors,borderWidth:0,borderRadius:3},
+    {type:'line',label:'Prom. histórico (mm/día)',data:avgLine,borderColor:'rgba(232,184,75,.6)',borderDash:[4,3],fill:false,pointRadius:0,borderWidth:1.5},
+    {type:'line',label:'Umbral riesgo (20mm)',data:Array(FC.length).fill(20),borderColor:'rgba(232,80,80,.35)',borderDash:[4,4],fill:false,pointRadius:0,borderWidth:1}
+  ]},options:{...bO,plugins:{...bO.plugins,legend:{display:true,labels:{color:'#6b7d62',boxWidth:10,font:{size:10}}}},
+    scales:{...bO.scales,y:{...bO.scales.y,min:0,title:{display:true,text:'mm',color:'#6b7d62',font:{size:9}}}}}});
+  var cards=document.getElementById('rain-cards');
+  cards.innerHTML='';
+  FC.filter(function(r){return !r.past;}).forEach(function(r){
+    var clr=r.prec>=20?'var(--red)':r.prec>=10?'var(--amber)':'var(--teal)';
+    var d=document.createElement('div');
+    d.style.cssText='background:var(--bg2);border:1px solid var(--border);border-top:2px solid '+clr+';border-radius:8px;padding:10px 12px;text-align:center';
+    d.innerHTML='<div style="font-size:11px;color:var(--muted)">'+r.dl+(r.today?' <b style="color:var(--amber)">HOY</b>':'')+'</div>'
+      +'<div style="font-family:var(--serif);font-size:22px;color:'+clr+'">'+r.prec+'<span style="font-size:11px;color:var(--muted)">mm</span></div>'
+      +'<div style="font-size:10px;color:var(--muted)">'+r.wd+'</div>';
+    cards.appendChild(d);
+  });
+}
+
+function initField(){
+  var labels=FC.map(function(r){return r.past?r.dl+' ★':r.today?r.dl+' ◆':r.dl;});
+  var scores=FC.map(function(r){return r.hs;});
+  var sc=scores.map(function(s){return s>=7?'rgba(82,201,160,.7)':s>=5?'rgba(232,184,75,.7)':'rgba(232,112,112,.7)';});
+  var tides_fc=FC.map(function(r){return r.tide||null;});
+  mk('chart-harvest',{type:'bar',data:{labels:labels,datasets:[
+    {type:'bar',label:'Índice cosecha',data:scores,backgroundColor:sc,borderWidth:0,borderRadius:4,yAxisID:'y1'},
+    {type:'line',label:'Óptimo (7)',data:Array(FC.length).fill(7),borderColor:'rgba(82,201,160,.3)',borderDash:[4,3],fill:false,pointRadius:0,borderWidth:1,yAxisID:'y1'},
+    {type:'line',label:'Marea máx (m)',data:tides_fc,borderColor:'#70b8e8',backgroundColor:'rgba(112,184,232,.08)',fill:true,tension:.4,pointRadius:2,borderWidth:1.5,yAxisID:'y2',spanGaps:true}
+  ]},options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:true,labels:{color:'#6b7d62',boxWidth:10,font:{size:10}}},tooltip:{mode:'index',intersect:false,backgroundColor:'#1c2117',borderColor:'#2a3025',borderWidth:1,titleColor:'#dde8d4',bodyColor:'#6b7d62',padding:10}},
+    scales:{x:{grid:{color:G}},
+      y1:{type:'linear',position:'left',grid:{color:G},min:0,max:10,ticks:{stepSize:2},title:{display:true,text:'Índice cosecha',color:'#6b7d62',font:{size:9}}},
+      y2:{type:'linear',position:'right',grid:{display:false},min:0,max:3.5,title:{display:true,text:'Marea (m)',color:'#70b8e8',font:{size:9}},ticks:{color:'#70b8e8'}}}}});
+  document.getElementById('field-tbody').innerHTML=FC.map(function(r){
+    var s=r.hs>=7?'var(--teal)':r.hs>=5?'var(--amber)':'var(--red)';
+    var bg=r.today?'background:rgba(232,184,75,.06)':'';
+    var lbl=r.today?' <span style="font-size:9px;background:rgba(232,184,75,.25);color:var(--amber);padding:1px 5px;border-radius:3px">HOY</span>':r.past?' <span style="font-size:9px;color:var(--muted)">★</span>':'';
+    return '<tr style="'+bg+'">'
+      +'<td style="padding:7px 10px;border-bottom:1px solid rgba(42,48,37,.5);color:var(--muted)">'+r.dl+lbl+'</td>'
+      +'<td style="text-align:right;padding:7px 10px;border-bottom:1px solid rgba(42,48,37,.5);color:'+(r.tmax>=34?'var(--coral)':'var(--text)')+'">'+( r.tmax||'—')+'</td>'
+      +'<td style="text-align:right;padding:7px 10px;border-bottom:1px solid rgba(42,48,37,.5);color:'+(r.rh>80?'var(--blue)':r.rh<60?'var(--amber)':'var(--text)')+'">'+( r.rh||'—')+'</td>'
+      +'<td style="text-align:right;padding:7px 10px;border-bottom:1px solid rgba(42,48,37,.5);color:var(--purple)">'+( r.wind||'—')+'</td>'
+      +'<td style="text-align:right;padding:7px 10px;border-bottom:1px solid rgba(42,48,37,.5);color:'+(r.prec>=20?'var(--red)':r.prec>0?'var(--blue)':'var(--muted)')+'">'+r.prec+'</td>'
+      +'<td style="text-align:right;padding:7px 10px;border-bottom:1px solid rgba(42,48,37,.5);color:'+(r.tide&&r.tide>=2.2?'var(--red)':r.tide&&r.tide>=1.8?'var(--amber)':'var(--muted)')+'">'+(r.tide||'—')+'</td>'
+      +'<td style="text-align:center;padding:7px 10px;border-bottom:1px solid rgba(42,48,37,.5)"><span style="font-family:var(--serif);font-size:16px;color:'+s+'">'+r.hs+'</span></td>'
+      +'</tr>';
+  }).join('');
+}
+
+
 function switchTab(id,el){
   document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
   document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});
@@ -519,6 +686,8 @@ function switchTab(id,el){
   el.classList.add('active');
   if(id==='mareas')    initTides();
   if(id==='riesgo')    initRisk();
+  if(id==='lluvia')    initRain();
+  if(id==='campo')     initField();
   if(id==='clima')     initClimate();
 }
 
@@ -537,13 +706,107 @@ def main():
     daily, s, e = climate()
     fc = forecast()
     td = tides()
+    td["_fc"] = fc
     monthly, sa = process_climate(daily)
     kp = calc_kpis(monthly)
     rs = calc_risks(td, fc, mn)
-    print("[Riesgo] Hoy: %s (puntuación %d) · marea %.2fm" % (rs[0]["level"],rs[0]["score"],rs[0]["tide"]))
+    print("[Riesgo] Hoy: %s (puntuación %d) · marea %.2fm · cosecha %.1f" % (rs[0]["level"],rs[0]["score"],rs[0]["tide"],rs[0]["hs"]))
     html = build(monthly, sa, kp, rs, mn, td, s, e)
     Path(OUT).write_text(html, encoding="utf-8")
     print("✓ Generado: %s (%.1f KB)" % (OUT, Path(OUT).stat().st_size/1024))
 
 if __name__ == "__main__":
     main()
+    # ── JS: Condiciones de Campo ─────────────────────────────
+    fc_data = tide_data.get("_fc", {})
+    fc_dates = fc_data.get("time", [])
+    fc_tmax  = fc_data.get("temperature_2m_max", [])
+    fc_tmin  = fc_data.get("temperature_2m_min", [])
+    fc_rhmax = fc_data.get("relative_humidity_2m_max", [])
+    fc_rhmin = fc_data.get("relative_humidity_2m_min", [])
+    fc_prec  = fc_data.get("precipitation_sum", [])
+    fc_wind  = fc_data.get("wind_speed_10m_max", [])
+
+    today_str = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
+
+    tide_daily_max = {}
+    for ex in tide_data.get("extremes", []):
+        if ex["type"] != "High": continue
+        ds2 = datetime.fromtimestamp(ex["dt"], tz=timezone.utc).strftime("%Y-%m-%d")
+        tide_daily_max[ds2] = max(tide_daily_max.get(ds2, 0), ex["height"])
+    for hh in tide_data.get("heights", []):
+        ds2 = datetime.fromtimestamp(hh["dt"], tz=timezone.utc).strftime("%Y-%m-%d")
+        tide_daily_max[ds2] = max(tide_daily_max.get(ds2, 0), hh["height"])
+
+    fc_rows = []
+    dias_semana = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"]
+    for i, ds2 in enumerate(fc_dates):
+        tm = fc_tmax[i] if i < len(fc_tmax) else None
+        tn = fc_tmin[i] if i < len(fc_tmin) else None
+        rhx = fc_rhmax[i] if i < len(fc_rhmax) else None
+        rhn = fc_rhmin[i] if i < len(fc_rhmin) else None
+        pr = fc_prec[i] if i < len(fc_prec) else None
+        wi = fc_wind[i] if i < len(fc_wind) else None
+        rh2 = round((rhx + rhn) / 2) if (rhx and rhn) else rhx
+        tide_h = tide_daily_max.get(ds2)
+        hs2 = harvest_score(tm, rh2, wi, pr or 0)
+        past2 = ds2 < today_str
+        dt2 = datetime.strptime(ds2, "%Y-%m-%d")
+        fc_rows.append({
+            "ds": ds2,
+            "dl": dt2.strftime("%d/%m"),
+            "wd": dias_semana[dt2.weekday()],
+            "tmax": round(tm, 1) if tm else None,
+            "rh": rh2,
+            "prec": round(pr, 1) if pr is not None else 0,
+            "wind": round(wi, 1) if wi else None,
+            "tide": round(tide_h, 2) if tide_h else None,
+            "hs": hs2,
+            "past": past2,
+            "today": ds2 == today_str
+        })
+
+    monthly_rain_avg = [sa[m]["prec"] for m in range(1, 13)]
+    js_field = "var FC=%s;var RAIN_AVG=%s;" % (jl(fc_rows), jl(monthly_rain_avg))
+
+    # Pestaña: Pronóstico de Lluvia
+    parts.append("""<div id="tab-lluvia" class="panel">
+  <div class="sec-title">Pronóstico de lluvia 10 días</div>
+  <div class="chart-card">
+    <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Precipitación diaria (mm) vs. promedio histórico mensual &middot; Open-Meteo · ★ días pasados · ◆ hoy</div>
+    <div class="chart-wrap-lg"><canvas id="chart-rain"></canvas></div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#70b8e8"></div>Pronóstico (mm/día)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(232,184,75,.5)"></div>Promedio histórico (mm/día)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(232,80,80,.4)"></div>Umbral riesgo ≥20mm</div>
+    </div>
+  </div>
+  <div class="sec-title">Detalle por día</div>
+  <div id="rain-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px;margin-bottom:20px"></div>
+</div>
+""")
+
+    # Pestaña: Condiciones de Campo
+    parts.append("""<div id="tab-campo" class="panel">
+  <div class="sec-title">Condiciones de campo &mdash; últimos 60 días y próximos 10</div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:14px">Índice de cosecha 0&ndash;10 &middot; temperatura + humedad + viento + lluvia &middot; verde ≥7 óptimo · ámbar 5&ndash;7 bueno · rojo &lt;5 malo · ★ pasado · ◆ hoy</div>
+  <div class="chart-card" style="margin-bottom:20px">
+    <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Índice de cosecha y marea máxima · ventana 70 días</div>
+    <div class="chart-wrap"><canvas id="chart-harvest"></canvas></div>
+  </div>
+  <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr>
+        <th style="text-align:left;padding:8px 10px;font-size:10px;font-weight:600;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border)">Fecha</th>
+        <th style="text-align:right;padding:8px 10px;font-size:10px;font-weight:600;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border)">Máx °C</th>
+        <th style="text-align:right;padding:8px 10px;font-size:10px;font-weight:600;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border)">Humedad %</th>
+        <th style="text-align:right;padding:8px 10px;font-size:10px;font-weight:600;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border)">Viento km/h</th>
+        <th style="text-align:right;padding:8px 10px;font-size:10px;font-weight:600;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border)">Lluvia mm</th>
+        <th style="text-align:right;padding:8px 10px;font-size:10px;font-weight:600;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border)">Marea m</th>
+        <th style="text-align:center;padding:8px 10px;font-size:10px;font-weight:600;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border)">Índice Cosecha</th>
+      </tr></thead>
+      <tbody id="field-tbody"></tbody>
+    </table>
+  </div>
+</div>
+""")
