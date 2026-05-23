@@ -36,7 +36,8 @@ def climate():
     return d, sf, ef
 
 def forecast():
-    url = f"https://api.open-meteo.com/v1/forecast?latitude={LAT}&longitude={LON}&daily=precipitation_sum,wind_speed_10m_max,wind_direction_10m_dominant&forecast_days=10&timezone={TZ}&wind_speed_unit=kmh"
+    vars_ = "precipitation_sum,wind_speed_10m_max,wind_direction_10m_dominant,temperature_2m_max,temperature_2m_min,relative_humidity_2m_max,relative_humidity_2m_min"
+    url = f"https://api.open-meteo.com/v1/forecast?latitude={LAT}&longitude={LON}&daily={vars_}&forecast_days=10&past_days=60&timezone={TZ}&wind_speed_unit=kmh"
     print("[Forecast] fetching...")
     return get(url)["daily"]
 
@@ -106,6 +107,37 @@ def calc_kpis(monthly):
             "avg_rh":av(rh),"avg_rain_yr":round((av(pr) or 0)*12,0),
             "avg_rain_mo":av(pr),"avg_wind":av(wi),"avg_evap":av(ev)}
 
+def harvest_score(tmax, rh, wind, rain):
+    """Score 0-10: how good are conditions for salt harvesting today"""
+    s = 0.0
+    # Temperature (ideal 32-36°C)
+    if tmax is None: s += 5
+    elif tmax >= 34: s += 10
+    elif tmax >= 32: s += 8
+    elif tmax >= 30: s += 6
+    elif tmax >= 28: s += 4
+    else: s += 2
+    # Humidity (lower = better, ideal <65%)
+    if rh is None: s += 5
+    elif rh <= 60: s += 10
+    elif rh <= 70: s += 8
+    elif rh <= 78: s += 5
+    elif rh <= 85: s += 3
+    else: s += 1
+    # Wind (moderate wind helps evaporation, ideal 8-15 km/h)
+    if wind is None: s += 5
+    elif 8 <= wind <= 15: s += 10
+    elif 5 <= wind <= 20: s += 7
+    elif wind > 20: s += 5
+    else: s += 3
+    # Rain (any rain hurts)
+    if rain is None: s += 5
+    elif rain == 0: s += 10
+    elif rain < 5: s += 7
+    elif rain < 20: s += 3
+    else: s += 0
+    return round(s / 4, 1)
+
 def calc_risks(tide_data, fc, mn):
     _,_,_,d2s,syzy = mn
     hi = {}
@@ -116,11 +148,17 @@ def calc_risks(tide_data, fc, mn):
     fp = {fc["time"][i]:(fc["precipitation_sum"][i] or 0) for i in range(len(fc["time"]))}
     fw = {fc["time"][i]:(fc["wind_speed_10m_max"][i] or 0) for i in range(len(fc["time"]))}
     fd = {fc["time"][i]:(fc["wind_direction_10m_dominant"][i] or 0) for i in range(len(fc["time"]))}
+    ftmax = {fc["time"][i]:fc["temperature_2m_max"][i] for i in range(len(fc["time"]))}
+    frhmax = {fc["time"][i]:fc["relative_humidity_2m_max"][i] for i in range(len(fc["time"]))}
+    frhmin = {fc["time"][i]:fc["relative_humidity_2m_min"][i] for i in range(len(fc["time"]))}
     out = []
     today = datetime.now(timezone.utc).date()
     for i in range(DAYS):
         d = today+timedelta(days=i); ds = d.strftime("%Y-%m-%d")
         tide=hi.get(ds,1.2); rain=fp.get(ds,0); wind=fw.get(ds,0); wdir=fd.get(ds,0)
+        tmax=ftmax.get(ds); rhmax=frhmax.get(ds); rhmin=frhmin.get(ds)
+        rh = round((rhmax+rhmin)/2) if (rhmax and rhmin) else rhmax
+        hs = harvest_score(tmax, rh, wind, rain)
         south = 135<=wdir<=225; sc=0; fx=[]
         if tide>=W3: sc+=3; fx.append("Extreme tide %.2fm" % tide)
         elif tide>=W2: sc+=2; fx.append("High tide %.2fm" % tide)
@@ -136,7 +174,9 @@ def calc_risks(tide_data, fc, mn):
         else:       lv,co,lb="MINIMAL","#6b7d62","⚪ MINIMAL"
         out.append({"date":ds,"dl":d.strftime("%b %d"),"wd":d.strftime("%A")[:3],
                     "tide":round(tide,2),"rain":round(rain,1),"wind":round(wind,1),
-                    "south":south,"score":sc,"level":lv,"color":co,"label":lb,"fx":fx})
+                    "tmax":round(tmax,1) if tmax else None,"rh":rh,
+                    "south":south,"score":sc,"level":lv,"color":co,"label":lb,"fx":fx,
+                    "hs":hs})
     return out
 
 def build(monthly, sa, kp, rs, mn, tide_data, s_date, e_date):
@@ -213,11 +253,70 @@ def build(monthly, sa, kp, rs, mn, tide_data, s_date, e_date):
     k = kp
 
     # ── ALL JS DATA (no f-string conflicts) ───────────────────
+    # Field conditions: rs already has 10 future days with tmax/rh/wind/rain/hs
+    # For past 5 days we need to reference fc directly
+    fc_all = tide_data.get("_fc_ref", {})  # passed via tide_data hack - see below
+
     js_data = "var TH=%s;var TV=%s;var W1=%s;var W2=%s;var W3=%s;var RD=%s;var RS=%s;var RC=%s;var RT=%s;var CL=%s;var CMAX=%s;var CMIN=%s;var CMN=%s;var CRH=%s;var CPR=%s;var CWI=%s;var CEV=%s;" % (
         jl(th3),jl(tv3),W1,W2,W3,
         jl(rdates),jl(rscores),jl(rcolors),jl(rtides),
         jl(lbs),jl(tmax_s),jl(tmin_s),jl(tmean_s),
         jl(rh_s),jl(prec_s),jl(wind_s),jl(evap_s))
+
+    # Field conditions data (past 5 + today + future 10 = 16 days)
+    fc_data = tide_data.get("_fc", {})
+    fc_dates = fc_data.get("time", [])
+    fc_tmax  = fc_data.get("temperature_2m_max", [])
+    fc_tmin  = fc_data.get("temperature_2m_min", [])
+    fc_rhmax = fc_data.get("relative_humidity_2m_max", [])
+    fc_rhmin = fc_data.get("relative_humidity_2m_min", [])
+    fc_prec  = fc_data.get("precipitation_sum", [])
+    fc_wind  = fc_data.get("wind_speed_10m_max", [])
+
+    today_str = datetime.now(timezone.utc).date().strftime("%Y-%m-%d")
+
+    # Build daily max tide lookup from WorldTides data (extremes)
+    tide_daily_max = {}
+    for ex in tide_data.get("extremes", []):
+        if ex["type"] != "High": continue
+        ds = datetime.fromtimestamp(ex["dt"], tz=timezone.utc).strftime("%Y-%m-%d")
+        tide_daily_max[ds] = max(tide_daily_max.get(ds, 0), ex["height"])
+    # Also from heights (hourly) for any days not in extremes
+    for h in tide_data.get("heights", []):
+        ds = datetime.fromtimestamp(h["dt"], tz=timezone.utc).strftime("%Y-%m-%d")
+        tide_daily_max[ds] = max(tide_daily_max.get(ds, 0), h["height"])
+
+    fc_rows = []
+    for i, ds in enumerate(fc_dates):
+        tm = fc_tmax[i] if i < len(fc_tmax) else None
+        tn = fc_tmin[i] if i < len(fc_tmin) else None
+        rhx = fc_rhmax[i] if i < len(fc_rhmax) else None
+        rhn = fc_rhmin[i] if i < len(fc_rhmin) else None
+        pr = fc_prec[i] if i < len(fc_prec) else None
+        wi = fc_wind[i] if i < len(fc_wind) else None
+        rh = round((rhx + rhn) / 2) if (rhx and rhn) else rhx
+        tide_h = tide_daily_max.get(ds)
+        hs = harvest_score(tm, rh, wi, pr or 0)
+        past = ds < today_str
+        fc_rows.append({
+            "ds": ds,
+            "dl": datetime.strptime(ds, "%Y-%m-%d").strftime("%b %d"),
+            "wd": datetime.strptime(ds, "%Y-%m-%d").strftime("%a"),
+            "tmax": round(tm, 1) if tm else None,
+            "tmin": round(tn, 1) if tn else None,
+            "rh": rh,
+            "prec": round(pr, 1) if pr is not None else 0,
+            "wind": round(wi, 1) if wi else None,
+            "tide": round(tide_h, 2) if tide_h else None,
+            "hs": hs,
+            "past": past,
+            "today": ds == today_str
+        })
+
+    # Monthly rain averages for reference line
+    monthly_rain_avg = [sa[m]["prec"] for m in range(1, 13)]
+
+    js_field = "var FC=%s;var RAIN_AVG=%s;" % (jl(fc_rows), jl(monthly_rain_avg))
 
     # ── BUILD HTML (regular strings, NO f-string for CSS/JS) ──
     parts = []
@@ -330,6 +429,9 @@ footer{padding:24px 32px 0;font-size:11px;color:var(--muted);border-top:1px soli
     parts.append('  <div class="ab-main">\n')
     parts.append('    <div class="ab-title" style="color:%s"><span id="t-flood-risk">Today\'s Flood Risk</span>: %s</div>\n' % (bco, tr["level"]))
     parts.append('    <div class="ab-sub">Max tide: %sm &middot; Rain: %smm &middot; Wind: %s km/h &middot; %s %s</div>\n' % (tr["tide"], tr["rain"], tr["wind"], memoji, mname))
+    hs_color = "#52c9a0" if tr["hs"] >= 7 else "#e8b84b" if tr["hs"] >= 5 else "#e87070"
+    hs_label = "Optimal" if tr["hs"] >= 7 else "Good" if tr["hs"] >= 5 else "Poor"
+    parts.append('    <div class="ab-factors"><span class="ab-factor">🌾 Harvest conditions: <strong style="color:%s">%s (%s/10)</strong></span></div>\n' % (hs_color, hs_label, tr["hs"]))
     parts.append('    <div class="ab-factors">%s</div>\n' % tfx)
     parts.append("""  </div>
 </div>
@@ -339,6 +441,8 @@ footer{padding:24px 32px 0;font-size:11px;color:var(--muted);border-top:1px soli
     parts.append("""<div class="tabs">
   <button class="tab active" onclick="switchTab('tides',this)"><span id="t-tab1">🌊 Tide Forecast</span></button>
   <button class="tab" onclick="switchTab('risk',this)"><span id="t-tab2">⚠ Risk Index</span></button>
+  <button class="tab" onclick="switchTab('rain',this)">🌧 Rain Forecast</button>
+  <button class="tab" onclick="switchTab('field',this)">🌡 Field Conditions</button>
   <button class="tab" onclick="switchTab('climate',this)"><span id="t-tab3">📊 Climate Record</span></button>
   <button class="tab" onclick="switchTab('seasonal',this)"><span id="t-tab4">📅 Seasonal Pattern</span></button>
 </div>
@@ -459,6 +563,50 @@ footer{padding:24px 32px 0;font-size:11px;color:var(--muted);border-top:1px soli
 </div>
 """)
 
+    # Tab: Rain Forecast
+    parts.append("""<div id="tab-rain" class="panel">
+  <div class="sec-title">10-day rainfall forecast</div>
+  <div class="chart-card">
+    <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Daily precipitation forecast (mm) vs. monthly historical average &middot; Open-Meteo</div>
+    <div class="chart-wrap-lg"><canvas id="chart-rain"></canvas></div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#70b8e8"></div>Forecast (mm/day)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(232,184,75,.5)"></div>Monthly historical avg (mm/day)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(232,80,80,.4)"></div>Threshold &ge;20mm (risk)</div>
+    </div>
+  </div>
+  <div class="sec-title">Rainfall risk breakdown</div>
+  <div id="rain-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:20px"></div>
+</div>
+""")
+
+    # Tab: Field Conditions
+    parts.append("""<div id="tab-field" class="panel">
+  <div class="sec-title">Field conditions &mdash; past 5 days &amp; next 10</div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:14px">Harvest score: 0&ndash;10 composite index &middot; temperature + humidity + wind + rainfall &middot; green &ge;7 optimal &middot; amber 5&ndash;7 good &middot; red &lt;5 poor</div>
+  <div class="chart-card" style="margin-bottom:20px">
+    <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Harvest score trend &middot; 15-day window</div>
+    <div class="chart-wrap"><canvas id="chart-harvest"></canvas></div>
+  </div>
+  <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:12px" id="field-table">
+      <thead>
+        <tr>
+          <th style="text-align:left;padding:8px 10px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border-bottom:1px solid var(--border)">Date</th>
+          <th style="text-align:right;padding:8px 10px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border-bottom:1px solid var(--border)">Max &deg;C</th>
+          <th style="text-align:right;padding:8px 10px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border-bottom:1px solid var(--border)">Humidity %</th>
+          <th style="text-align:right;padding:8px 10px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border-bottom:1px solid var(--border)">Wind km/h</th>
+          <th style="text-align:right;padding:8px 10px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border-bottom:1px solid var(--border)">Rain mm</th>
+          <th style="text-align:right;padding:8px 10px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border-bottom:1px solid var(--border)">Tide m</th>
+          <th style="text-align:center;padding:8px 10px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border-bottom:1px solid var(--border)">Harvest Score</th>
+        </tr>
+      </thead>
+      <tbody id="field-tbody"></tbody>
+    </table>
+  </div>
+</div>
+""")
+
     # Footer
     parts.append('<footer>\n')
     parts.append('  <span>Climate: Open-Meteo ERA5-Land &middot; ECMWF</span>\n')
@@ -470,6 +618,7 @@ footer{padding:24px 32px 0;font-size:11px;color:var(--muted);border-top:1px soli
     # JavaScript (plain string, no f-string)
     parts.append('<script>\n')
     parts.append(js_data + "\n")
+    parts.append(js_field + "\n")
     parts.append("""
 var G='rgba(42,48,37,0.7)';
 Chart.defaults.color='#6b7d62';
@@ -524,6 +673,72 @@ function initClimate(){
   ]},options:{...bO}});
 }
 
+function initRain(){
+  var today = new Date().toISOString().slice(0,10);
+  var labels = FC.map(function(r){return r.past ? r.dl+' ★' : r.today ? r.dl+' ◆' : r.dl;});
+  var prec   = FC.map(function(r){return r.prec;});
+  var colors = FC.map(function(r){
+    if(r.past) return 'rgba(107,125,98,.4)';
+    if(r.prec>=20) return 'rgba(232,80,80,.7)';
+    if(r.prec>=10) return 'rgba(232,184,75,.7)';
+    return 'rgba(112,184,232,.6)';
+  });
+  // Monthly avg per day for reference - map each date to its month avg/30
+  var avgLine = FC.map(function(r){
+    var m = parseInt(r.ds.slice(5,7))-1;
+    return RAIN_AVG[m] ? Math.round(RAIN_AVG[m]/30*10)/10 : null;
+  });
+  mk('chart-rain',{type:'bar',data:{labels:labels,datasets:[
+    {type:'bar',label:'Forecast mm/day',data:prec,backgroundColor:colors,borderWidth:0,borderRadius:3},
+    {type:'line',label:'Monthly hist. avg (mm/day)',data:avgLine,borderColor:'rgba(232,184,75,.6)',borderDash:[4,3],fill:false,pointRadius:0,borderWidth:1.5},
+    {type:'line',label:'Risk threshold (20mm)',data:Array(FC.length).fill(20),borderColor:'rgba(232,80,80,.35)',borderDash:[4,4],fill:false,pointRadius:0,borderWidth:1}
+  ]},options:{...bO,plugins:{...bO.plugins,legend:{display:true,labels:{color:'#6b7d62',boxWidth:10,font:{size:10}}}},
+    scales:{...bO.scales,y:{...bO.scales.y,min:0,title:{display:true,text:'mm',color:'#6b7d62',font:{size:10}}}}}});
+  // Rain cards (future only)
+  var cards = document.getElementById('rain-cards');
+  cards.innerHTML = '';
+  FC.filter(function(r){return !r.past;}).forEach(function(r){
+    var c=r.prec>=20?'var(--red)':r.prec>=10?'var(--amber)':'var(--teal)';
+    var d=document.createElement('div');
+    d.style.cssText='background:var(--bg2);border:1px solid var(--border);border-top:2px solid '+c+';border-radius:8px;padding:10px 12px;text-align:center';
+    d.innerHTML='<div style="font-size:11px;color:var(--muted)">'+r.dl+(r.today?' <b style="color:var(--amber)">TODAY</b>':'')+'</div>'
+      +'<div style="font-family:var(--serif);font-size:22px;color:'+c+'">'+r.prec+'<span style="font-size:11px;color:var(--muted)">mm</span></div>'
+      +'<div style="font-size:10px;color:var(--muted)">'+r.wd+'</div>';
+    cards.appendChild(d);
+  });
+}
+
+function initField(){
+  var labels = FC.map(function(r){return r.past ? r.dl+' ★' : r.today ? r.dl+' ◆' : r.dl;});
+  var scores = FC.map(function(r){return r.hs;});
+  var scoreColors = scores.map(function(s){return s>=7?'rgba(82,201,160,.7)':s>=5?'rgba(232,184,75,.7)':'rgba(232,112,112,.7)';});
+  var tides_fc = FC.map(function(r){return r.tide||null;});
+  mk('chart-harvest',{type:'bar',data:{labels:labels,datasets:[
+    {type:'bar',label:'Harvest score',data:scores,backgroundColor:scoreColors,borderWidth:0,borderRadius:4,yAxisID:'y1'},
+    {type:'line',label:'Optimal (7)',data:Array(FC.length).fill(7),borderColor:'rgba(82,201,160,.3)',borderDash:[4,3],fill:false,pointRadius:0,borderWidth:1,yAxisID:'y1'},
+    {type:'line',label:'Max tide (m)',data:tides_fc,borderColor:'#70b8e8',backgroundColor:'rgba(112,184,232,.08)',fill:true,tension:.4,pointRadius:2,borderWidth:1.5,yAxisID:'y2',spanGaps:true}
+  ]},options:{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:true,labels:{color:'#6b7d62',boxWidth:10,font:{size:10}}},tooltip:{mode:'index',intersect:false,backgroundColor:'#1c2117',borderColor:'#2a3025',borderWidth:1,titleColor:'#dde8d4',bodyColor:'#6b7d62',padding:10}},
+    scales:{x:{grid:{color:G}},
+      y1:{type:'linear',position:'left',grid:{color:G},min:0,max:10,ticks:{stepSize:2},title:{display:true,text:'Harvest score',color:'#6b7d62',font:{size:9}}},
+      y2:{type:'linear',position:'right',grid:{display:false},min:0,max:3.5,title:{display:true,text:'Tide (m)',color:'#70b8e8',font:{size:9}},ticks:{color:'#70b8e8'}}}}});
+  // Field table
+  document.getElementById('field-tbody').innerHTML = FC.map(function(r){
+    var sc = r.hs>=7?'var(--teal)':r.hs>=5?'var(--amber)':'var(--red)';
+    var bg = r.today?'background:rgba(232,184,75,.06)':'';
+    var lbl = r.today?' <span style="font-size:9px;background:rgba(232,184,75,.25);color:var(--amber);padding:1px 5px;border-radius:3px">TODAY</span>':r.past?' <span style="font-size:9px;color:var(--muted)">★</span>':'';
+    return '<tr style="'+bg+'">'
+      +'<td style="padding:7px 10px;border-bottom:1px solid rgba(42,48,37,.5);color:var(--muted)">'+r.dl+lbl+'</td>'
+      +'<td style="text-align:right;padding:7px 10px;border-bottom:1px solid rgba(42,48,37,.5);color:'+(r.tmax>=34?'var(--coral)':'var(--text)')+'">'+( r.tmax||'—')+'</td>'
+      +'<td style="text-align:right;padding:7px 10px;border-bottom:1px solid rgba(42,48,37,.5);color:'+(r.rh>80?'var(--blue)':r.rh<60?'var(--amber)':'var(--text)')+'">'+( r.rh||'—')+'</td>'
+      +'<td style="text-align:right;padding:7px 10px;border-bottom:1px solid rgba(42,48,37,.5);color:var(--purple)">'+( r.wind||'—')+'</td>'
+      +'<td style="text-align:right;padding:7px 10px;border-bottom:1px solid rgba(42,48,37,.5);color:'+(r.prec>=20?'var(--red)':r.prec>0?'var(--blue)':'var(--muted)')+'">'+r.prec+'</td>'
+      +'<td style="text-align:right;padding:7px 10px;border-bottom:1px solid rgba(42,48,37,.5);color:'+(r.tide&&r.tide>=1.8?'var(--amber)':r.tide&&r.tide>=2.2?'var(--red)':'var(--muted)')+'">'+(r.tide||'—')+'</td>'
+      +'<td style="text-align:center;padding:7px 10px;border-bottom:1px solid rgba(42,48,37,.5)"><span style="font-family:var(--serif);font-size:16px;color:'+sc+'">'+r.hs+'</span></td>'
+      +'</tr>';
+  }).join('');
+}
+
 function switchTab(id,el){
   document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
   document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});
@@ -531,6 +746,8 @@ function switchTab(id,el){
   el.classList.add('active');
   if(id==='tides')   initTides();
   if(id==='risk')    initRisk();
+  if(id==='rain')    initRain();
+  if(id==='field')   initField();
   if(id==='climate') initClimate();
 }
 
@@ -550,10 +767,11 @@ def main():
     daily, s, e = climate()
     fc = forecast()
     td = tides()
+    td["_fc"] = fc  # pass forecast data into build via tide_data
     monthly, sa = process_climate(daily)
     kp = calc_kpis(monthly)
     rs = calc_risks(td, fc, mn)
-    print("[Risk] Today: %s (score %d) · tide %.2fm" % (rs[0]["level"],rs[0]["score"],rs[0]["tide"]))
+    print("[Risk] Today: %s (score %d) · tide %.2fm · harvest score %.1f" % (rs[0]["level"],rs[0]["score"],rs[0]["tide"],rs[0]["hs"]))
     html = build(monthly, sa, kp, rs, mn, td, s, e)
     Path(OUT).write_text(html, encoding="utf-8")
     print("✓ Written: %s (%.1f KB)" % (OUT, Path(OUT).stat().st_size/1024))
